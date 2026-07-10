@@ -333,6 +333,26 @@ export async function getPublicJourneyBySlug(slug: string) {
   }
 }
 
+export async function getPublicJourneySlugs() {
+  try {
+    const journeys = await prisma.journey.findMany({
+      where: {
+        status: "PUBLISHED",
+        visibility: "PUBLIC",
+        publicationConsent: { consentGiven: true },
+      },
+      select: {
+        slug: true,
+        updatedAt: true,
+      },
+    });
+
+    return journeys;
+  } catch {
+    return [];
+  }
+}
+
 export async function toggleFeatured(id: string): Promise<ActionResult> {
   try {
     const journey = await prisma.journey.findUnique({
