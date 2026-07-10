@@ -1,0 +1,133 @@
+import prisma from "../lib/prisma";
+import type {
+  CreateDestinationInput,
+  UpdateDestinationInput,
+} from "../lib/validation/destination.schema";
+import type { ActionResult } from "../types";
+
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export async function getAllDestinations() {
+  return prisma.destination.findMany({
+    orderBy: { name: "asc" },
+    include: { _count: { select: { journeys: true } } },
+  });
+}
+
+export async function getDestinationById(id: string) {
+  return prisma.destination.findUnique({
+    where: { id },
+    include: { heroMedia: true },
+  });
+}
+
+export async function getDestinationBySlug(slug: string) {
+  return prisma.destination.findUnique({ where: { slug } });
+}
+
+async function ensureUniqueSlug(
+  baseSlug: string,
+  excludeId?: string
+): Promise<string> {
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (true) {
+    const existing = await prisma.destination.findUnique({
+      where: { slug },
+    });
+
+    if (!existing || (excludeId && existing.id === excludeId)) {
+      return slug;
+    }
+
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+}
+
+export async function createDestination(
+  data: CreateDestinationInput
+): Promise<ActionResult> {
+  try {
+    const baseSlug = generateSlug(data.name);
+    const slug = await ensureUniqueSlug(baseSlug);
+
+    const destination = await prisma.destination.create({
+      data: { ...data, slug },
+    });
+    return { success: true, data: destination };
+  } catch {
+    return { success: false, error: "Failed to create destination" };
+  }
+}
+
+export async function updateDestination(
+  id: string,
+  data: UpdateDestinationInput
+): Promise<ActionResult> {
+  try {
+    const updateData: Record<string, unknown> = { ...data };
+
+    if (data.name) {
+      const baseSlug = generateSlug(data.name);
+      updateData.slug = await ensureUniqueSlug(baseSlug, id);
+    }
+
+    // convert empty string media ID to null for Prisma
+    if (updateData.heroMediaId === "") updateData.heroMediaId = null;
+
+    const destination = await prisma.destination.update({
+      where: { id },
+      data: updateData,
+    });
+    return { success: true, data: destination };
+  } catch {
+    return { success: false, error: "Failed to update destination" };
+  }
+}
+
+export async function deleteDestination(id: string): Promise<ActionResult> {
+  try {
+    const existing = await prisma.destination.findUnique({
+      where: { id },
+      include: { journeys: { take: 1 } },
+    });
+
+    if (!existing) {
+      return { success: false, error: "Destination not found" };
+    }
+
+    if (existing.journeys.length > 0) {
+      return {
+        success: false,
+        error: "Cannot delete destination with associated journeys",
+      };
+    }
+
+    await prisma.destination.delete({ where: { id } });
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to delete destination" };
+  }
+}
+
+export async function getPublicDestinations() {
+  try {
+    return prisma.destination.findMany({
+      orderBy: { name: "asc" },
+      include: {
+        heroMedia: {
+          select: { url: true, altText: true },
+        },
+      },
+    });
+  } catch {
+    return [];
+  }
+}
