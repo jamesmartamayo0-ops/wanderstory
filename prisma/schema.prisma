@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  EDITOR
+}
+
+enum JourneyStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum JourneyVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+enum MediaRole {
+  COVER
+  GALLERY
+  CHAPTER
+  DESTINATION_HERO
+  OG_IMAGE
+}
+
+model Admin {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         AdminRole @default(SUPER_ADMIN)
+  journeys     Journey[]
+  media        Media[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Client {
+  id                  String               @id @default(cuid())
+  name                String
+  email               String?
+  phone               String?
+  notes               String?              @db.Text
+  journeys            Journey[]
+  publicationConsents PublicationConsent[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model PublicationConsent {
+  id           String   @id @default(cuid())
+  journey      Journey  @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  journeyId    String   @unique
+  client       Client   @relation(fields: [clientId], references: [id])
+  clientId     String
+  consentGiven Boolean
+  consentedAt  DateTime
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+model Journey {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  travelerName    String
+  travelStartDate DateTime
+  travelEndDate   DateTime
+  introduction    String   @db.Text
+
+  status       JourneyStatus     @default(DRAFT)
+  featured     Boolean           @default(false)
+  visibility   JourneyVisibility @default(PRIVATE)
+  privateToken String?           @unique
+  publishedAt  DateTime?
+
+  author   Admin  @relation(fields: [authorId], references: [id])
+  authorId String
+
+  client   Client @relation(fields: [clientId], references: [id])
+  clientId String
+
+  destination   Destination @relation(fields: [destinationId], references: [id])
+  destinationId String
+
+  categories         JourneyCategory[]
+  chapters           Chapter[]
+  timelineEvents     TimelineEvent[]
+  quotes             Quote[]
+  media              Media[]
+  publicationConsent PublicationConsent?
+
+  coverMedia   Media?  @relation("JourneyCover", fields: [coverMediaId], references: [id])
+  coverMediaId String? @unique
+
+  seoTitle       String?
+  seoDescription String?
+  canonicalUrl   String?
+  ogImage        Media?  @relation("JourneyOgImage", fields: [ogImageId], references: [id])
+  ogImageId      String? @unique
+  structuredData Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, visibility])
+  @@index([destinationId])
+  @@index([clientId])
+  @@index([featured])
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  journey   Journey  @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  journeyId String
+  title     String
+  order     Int
+  content   String   @db.Text
+  media     Media[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([journeyId, order])
+  @@index([journeyId, order])
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  journey     Journey  @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  journeyId   String
+  date        DateTime
+  title       String
+  description String?  @db.Text
+  order       Int
+
+  @@unique([journeyId, order])
+  @@index([journeyId, order])
+}
+
+model Quote {
+  id          String  @id @default(cuid())
+  journey     Journey @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  journeyId   String
+  text        String  @db.Text
+  attribution String?
+  order       Int
+
+  @@unique([journeyId, order])
+}
+
+model Destination {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  country     String
+  region      String?
+  description String?   @db.Text
+  heroMedia   Media?    @relation(fields: [heroMediaId], references: [id])
+  heroMediaId String?   @unique
+  journeys    Journey[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Category {
+  id          String            @id @default(cuid())
+  slug        String            @unique
+  name        String
+  description String?
+  journeys    JourneyCategory[]
+}
+
+model JourneyCategory {
+  journey    Journey  @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  journeyId  String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+
+  @@id([journeyId, categoryId])
+}
+
+model Media {
+  id String @id @default(cuid())
+
+  fileName String
+  mimeType String
+  size     Int
+  type     MediaType
+  format   String?
+
+  width    Int?
+  height   Int?
+  duration Int?
+
+  provider   String
+  providerId String?
+
+  url          String
+  thumbnailUrl String?
+  blurDataUrl  String? @db.Text
+
+  role    MediaRole
+  altText String?
+  order   Int       @default(0)
+
+  uploader   Admin?  @relation(fields: [uploaderId], references: [id])
+  uploaderId String?
+
+  journey   Journey? @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  journeyId String?
+
+  chapter   Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapterId String?
+
+  journeyCover    Journey?     @relation("JourneyCover")
+  journeyOgImage  Journey?     @relation("JourneyOgImage")
+  destinationHero Destination?
+
+  createdAt DateTime @default(now())
+
+  @@index([journeyId])
+  @@index([chapterId])
+  @@index([uploaderId])
+  @@index([type])
+  @@index([provider])
+}
