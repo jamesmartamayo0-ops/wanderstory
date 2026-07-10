@@ -231,6 +231,108 @@ export async function getPublicJourneys() {
   }
 }
 
+export async function getPublicJourneyBySlug(slug: string) {
+  try {
+    const journey = await prisma.journey.findFirst({
+      where: {
+        slug,
+        status: "PUBLISHED",
+        visibility: "PUBLIC",
+        publicationConsent: { consentGiven: true },
+      },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        travelerName: true,
+        travelStartDate: true,
+        travelEndDate: true,
+        introduction: true,
+        publishedAt: true,
+        seoTitle: true,
+        seoDescription: true,
+        canonicalUrl: true,
+        structuredData: true,
+        destination: {
+          select: { name: true, country: true, slug: true },
+        },
+        coverMedia: {
+          select: {
+            url: true,
+            altText: true,
+            blurDataUrl: true,
+            width: true,
+            height: true,
+          },
+        },
+        categories: {
+          select: {
+            category: { select: { name: true, slug: true } },
+          },
+        },
+        chapters: {
+          select: {
+            id: true,
+            title: true,
+            order: true,
+            content: true,
+            media: {
+              select: {
+                id: true,
+                url: true,
+                thumbnailUrl: true,
+                altText: true,
+                width: true,
+                height: true,
+                blurDataUrl: true,
+                role: true,
+              },
+              orderBy: { order: "asc" },
+            },
+          },
+          orderBy: { order: "asc" },
+        },
+        timelineEvents: {
+          select: {
+            id: true,
+            date: true,
+            title: true,
+            description: true,
+            order: true,
+          },
+          orderBy: { order: "asc" },
+        },
+        quotes: {
+          select: {
+            id: true,
+            text: true,
+            attribution: true,
+            order: true,
+          },
+          orderBy: { order: "asc" },
+        },
+        media: {
+          select: {
+            id: true,
+            url: true,
+            thumbnailUrl: true,
+            altText: true,
+            width: true,
+            height: true,
+            blurDataUrl: true,
+            role: true,
+          },
+          orderBy: { order: "asc" },
+        },
+      },
+    });
+
+    return journey;
+  } catch {
+    return null;
+  }
+}
+
 export async function toggleFeatured(id: string): Promise<ActionResult> {
   try {
     const journey = await prisma.journey.findUnique({
