@@ -1,5 +1,6 @@
 export interface PublicJourney {
   id: string;
+  slug: string;
   title: string;
   travelerName: string;
   introduction: string;
@@ -30,6 +31,7 @@ export function toPublicJourney(
 
   return {
     id: journey.id as string,
+    slug: journey.slug as string,
     title: journey.title as string,
     travelerName: journey.travelerName as string,
     introduction: journey.introduction as string,

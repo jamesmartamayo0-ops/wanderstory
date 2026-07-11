@@ -8,12 +8,13 @@ import GalleryBlock from "./GalleryBlock";
 
 interface JourneyDetailProps {
   journey: PublicJourneyDetail;
+  slug: string;
 }
 
-export default function JourneyDetail({ journey }: JourneyDetailProps) {
+export default function JourneyDetail({ journey, slug }: JourneyDetailProps) {
   return (
     <>
-      <HeroSection journey={journey} />
+      <HeroSection journey={journey} slug={slug} />
       <IntroductionBlock introduction={journey.introduction} />
       <TimelineBlock timelineEvents={journey.timelineEvents} />
       <ChapterBlock chapters={journey.chapters} />

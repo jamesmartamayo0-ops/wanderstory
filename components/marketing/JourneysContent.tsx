@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import JourneyCard from "./JourneyCard";
 import type { PublicJourney } from "@/lib/adapters/journey.adapter";
@@ -53,7 +54,12 @@ export default function JourneysContent({ journeys }: JourneysContentProps) {
     >
       {journeys.map((journey) => (
         <motion.div key={journey.id} variants={item}>
-          <JourneyCard journey={journey} />
+          <Link
+            href={`/journeys/${journey.slug}`}
+            className="block"
+          >
+            <JourneyCard journey={journey} />
+          </Link>
         </motion.div>
       ))}
     </motion.div>

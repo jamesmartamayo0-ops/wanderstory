@@ -74,7 +74,7 @@ export default async function JourneyPage({ params }: JourneyPageProps) {
       />
       <Navbar />
       <main>
-        <JourneyDetail journey={journey} />
+        <JourneyDetail journey={journey} slug={slug} />
       </main>
       <Footer />
     </>
