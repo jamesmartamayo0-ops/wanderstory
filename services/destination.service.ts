@@ -117,6 +117,58 @@ export async function deleteDestination(id: string): Promise<ActionResult> {
   }
 }
 
+export async function getPublicDestinationBySlug(slug: string) {
+  try {
+    const destination = await prisma.destination.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        country: true,
+        region: true,
+        description: true,
+        heroMedia: {
+          select: {
+            url: true,
+            altText: true,
+            blurDataUrl: true,
+            width: true,
+            height: true,
+          },
+        },
+        journeys: {
+          where: {
+            status: "PUBLISHED",
+            visibility: "PUBLIC",
+            publicationConsent: { consentGiven: true },
+          },
+          orderBy: { publishedAt: "desc" },
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            travelerName: true,
+            introduction: true,
+            publishedAt: true,
+            destination: {
+              select: { name: true, country: true },
+            },
+            coverMedia: {
+              select: { url: true, altText: true },
+            },
+            _count: { select: { chapters: true } },
+          },
+        },
+      },
+    });
+
+    return destination;
+  } catch {
+    return null;
+  }
+}
+
 export async function getPublicDestinations() {
   try {
     return prisma.destination.findMany({
