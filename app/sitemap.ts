@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getPublicJourneySlugs } from "@/services/journey.service";
+import { getPublicDestinationSlugs } from "@/services/destination.service";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
@@ -44,7 +45,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const journeys = await getPublicJourneySlugs();
+  const [journeys, destinations] = await Promise.all([
+    getPublicJourneySlugs(),
+    getPublicDestinationSlugs(),
+  ]);
 
   const journeyRoutes: MetadataRoute.Sitemap = journeys.map((journey) => ({
     url: `${baseUrl}/journeys/${journey.slug}`,
@@ -53,5 +57,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...journeyRoutes];
+  const destinationRoutes: MetadataRoute.Sitemap = destinations.map(
+    (destination) => ({
+      url: `${baseUrl}/destinations/${destination.slug}`,
+      lastModified: destination.updatedAt,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    })
+  );
+
+  return [...staticRoutes, ...journeyRoutes, ...destinationRoutes];
 }

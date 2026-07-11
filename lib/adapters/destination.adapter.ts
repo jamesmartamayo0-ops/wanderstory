@@ -1,10 +1,10 @@
 import type { FeaturedDestination } from "@/data/featured-destinations";
 
-export type PublicDestination = FeaturedDestination;
+export type PublicDestination = FeaturedDestination & { slug: string };
 
 export function toPublicDestination(
   destination: Record<string, unknown>
-): FeaturedDestination {
+): PublicDestination {
   const heroMedia = destination.heroMedia as {
     url: string;
     altText: string | null;
@@ -15,6 +15,7 @@ export function toPublicDestination(
 
   return {
     id: destination.id as string,
+    slug: destination.slug as string,
     title: name,
     location: region ? `${region}, ${country}` : country,
     description: (destination.description as string | null) ?? "",

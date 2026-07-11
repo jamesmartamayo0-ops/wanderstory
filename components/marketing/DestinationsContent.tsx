@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import DestinationCard from "./DestinationCard";
-import type { FeaturedDestination } from "@/data/featured-destinations";
+import type { PublicDestination } from "@/lib/adapters/destination.adapter";
 
 interface DestinationsContentProps {
-  destinations: FeaturedDestination[];
+  destinations: PublicDestination[];
 }
 
 export default function DestinationsContent({
@@ -55,7 +56,12 @@ export default function DestinationsContent({
     >
       {destinations.map((dest) => (
         <motion.div key={dest.id} variants={item}>
-          <DestinationCard destination={dest} />
+          <Link
+            href={`/destinations/${dest.slug}`}
+            className="block"
+          >
+            <DestinationCard destination={dest} />
+          </Link>
         </motion.div>
       ))}
     </motion.div>
