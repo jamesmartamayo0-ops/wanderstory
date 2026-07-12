@@ -32,6 +32,70 @@ async function main() {
 
   console.log(`Admin created successfully: ${admin.email}`);
 
+  // --------------------------------------------------
+  // Phase 2.2 - Featured destinations for homepage
+  // --------------------------------------------------
+
+  const FEATURED_DESTINATIONS = [
+    { id: "seed-dest-coastal-cliffs",    slug: "coastal-cliffs",    name: "Coastal Cliffs",    country: "United States", region: "Pacific Northwest",       desc: "Rugged shorelines where ancient forests meet the sea - a landscape carved by wind and wave.",        img: "/destinations/placeholder-1.svg", alt: "Abstract geometric gradient representing coastal cliffs" },
+    { id: "seed-dest-desert-mesas",      slug: "desert-mesas",      name: "Desert Mesas",      country: "United States", region: "Southwest",               desc: "Towering sandstone sentinels rising from an ocean of rust-coloured dust and juniper.",              img: "/destinations/placeholder-2.svg", alt: "Abstract geometric gradient representing desert mesas" },
+    { id: "seed-dest-misty-highlands",   slug: "misty-highlands",   name: "Misty Highlands",   country: "United Kingdom", region: "Scottish Highlands",      desc: "Heather-blanketed valleys shrouded in silver mist, where every step uncovers a Celtic legend.",      img: "/destinations/placeholder-3.svg", alt: "Abstract geometric gradient representing misty highlands" },
+    { id: "seed-dest-northern-lights",   slug: "northern-lights",   name: "Northern Lights",   country: "Norway",        region: "Scandinavia",            desc: "Emerald and violet ribbons dancing across an inky polar sky - nature's own light show.",            img: "/destinations/placeholder-4.svg", alt: "Abstract geometric gradient representing northern lights" },
+    { id: "seed-dest-sun-kissed-coast",  slug: "sun-kissed-coast",  name: "Sun-Kissed Coast",  country: "Italy",         region: "Amalfi Coast",           desc: "Pastel villages clinging to dramatic cliffs above a glittering turquoise Mediterranean sea.",       img: "/destinations/placeholder-5.svg", alt: "Abstract geometric gradient representing a sun-kissed coast" },
+    { id: "seed-dest-alpine-peaks",      slug: "alpine-peaks",      name: "Alpine Peaks",      country: "Switzerland",   region: "Swiss Alps",             desc: "Snow-capped granite spires piercing a crystalline sky above flower-dotted alpine meadows.",         img: "/destinations/placeholder-6.svg", alt: "Abstract geometric gradient representing alpine peaks" },
+  ];
+
+  for (let i = 0; i < FEATURED_DESTINATIONS.length; i++) {
+    const d = FEATURED_DESTINATIONS[i];
+    const mediaId = d.id + "-media";
+
+    await prisma.media.upsert({
+      where: { id: mediaId },
+      update: {
+        fileName: d.img.split("/").pop() ?? "placeholder.svg",
+        altText: d.alt,
+      },
+      create: {
+        id: mediaId,
+        fileName: d.img.split("/").pop() ?? "placeholder.svg",
+        mimeType: "image/svg+xml",
+        size: 0,
+        type: "IMAGE",
+        provider: "local",
+        url: d.img,
+        role: "DESTINATION_HERO",
+        altText: d.alt,
+        order: 0,
+        uploaderId: admin.id,
+      },
+    });
+
+    await prisma.destination.upsert({
+      where: { id: d.id },
+      update: {
+        name: d.name,
+        country: d.country,
+        region: d.region,
+        description: d.desc,
+        featured: true,
+        heroMediaId: mediaId,
+      },
+      create: {
+        id: d.id,
+        slug: d.slug,
+        name: d.name,
+        country: d.country,
+        region: d.region,
+        description: d.desc,
+        featured: true,
+        heroMediaId: mediaId,
+      },
+    });
+
+    console.log("  Featured destination: " + d.name);
+  }
+  console.log("");
+
   // ──────────────────────────────────────────────
   // Phase 1.5B — Public journey consent filter seed data
   // Idempotent: uses upsert with deterministic IDs.

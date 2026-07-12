@@ -24,6 +24,7 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
       region: formData.get("region"),
       description: formData.get("description"),
       heroMediaId: formData.get("heroMediaId"),
+      featured: formData.get("featured") === "true",
     });
 
     if (!parsed.success) {

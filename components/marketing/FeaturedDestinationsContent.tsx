@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Link from "next/link";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import DestinationCard from "./DestinationCard";
 import type { FeaturedDestination } from "@/data/featured-destinations";
@@ -35,6 +36,10 @@ export default function FeaturedDestinationsContent({
     },
   };
 
+  if (destinations.length === 0) {
+    return null;
+  }
+
   return (
     <motion.div
       variants={container}
@@ -45,7 +50,12 @@ export default function FeaturedDestinationsContent({
     >
       {destinations.map((dest) => (
         <motion.div key={dest.id} variants={item}>
-          <DestinationCard destination={dest} />
+          <Link
+            href={`/destinations/${(dest as FeaturedDestination & { slug: string }).slug}`}
+            className="block"
+          >
+            <DestinationCard destination={dest} />
+          </Link>
         </motion.div>
       ))}
     </motion.div>

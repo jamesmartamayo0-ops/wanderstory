@@ -169,6 +169,23 @@ export async function getPublicDestinationBySlug(slug: string) {
   }
 }
 
+export async function getFeaturedDestinations(take: number = 6) {
+  try {
+    return prisma.destination.findMany({
+      where: { featured: true },
+      take,
+      orderBy: { name: "asc" },
+      include: {
+        heroMedia: {
+          select: { url: true, altText: true },
+        },
+      },
+    });
+  } catch {
+    return [];
+  }
+}
+
 export async function getPublicDestinationSlugs() {
   try {
     return prisma.destination.findMany({

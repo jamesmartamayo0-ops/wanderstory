@@ -1,7 +1,11 @@
-import { featuredDestinations } from "@/data/featured-destinations";
+﻿import { getFeaturedDestinations } from "@/services/destination.service";
+import { toPublicDestination } from "@/lib/adapters/destination.adapter";
 import FeaturedDestinationsContent from "./FeaturedDestinationsContent";
 
-export default function FeaturedDestinations() {
+export default async function FeaturedDestinations() {
+  const raw = await getFeaturedDestinations(6);
+  const destinations = raw.map(toPublicDestination);
+
   return (
     <section
       aria-label="Featured destinations"
@@ -23,7 +27,7 @@ export default function FeaturedDestinations() {
           </p>
         </div>
 
-        <FeaturedDestinationsContent destinations={featuredDestinations} />
+        <FeaturedDestinationsContent destinations={destinations} />
       </div>
     </section>
   );

@@ -5,6 +5,7 @@ export const createDestinationSchema = z.object({
   country: z.string().min(1, "Country is required"),
   region: z.string().optional().or(z.literal("")),
   description: z.string().optional().or(z.literal("")),
+  featured: z.boolean().optional(),
 });
 
 export const updateDestinationSchema = z.object({
@@ -13,6 +14,7 @@ export const updateDestinationSchema = z.object({
   region: z.string().optional().or(z.literal("")),
   description: z.string().optional().or(z.literal("")),
   heroMediaId: z.string().optional().or(z.literal("")),
+  featured: z.boolean().optional(),
 });
 
 export type CreateDestinationInput = z.infer<typeof createDestinationSchema>;

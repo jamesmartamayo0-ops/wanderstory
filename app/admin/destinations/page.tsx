@@ -73,6 +73,7 @@ async function DestinationList({
                 <th className="px-4 py-3 text-left font-medium">Name</th>
                 <th className="px-4 py-3 text-left font-medium">Country</th>
                 <th className="px-4 py-3 text-left font-medium">Region</th>
+                <th className="px-4 py-3 text-center font-medium">Featured</th>
                 <th className="px-4 py-3 text-center font-medium">Journeys</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
@@ -194,6 +195,16 @@ async function CreateDestinationForm() {
             />
           </div>
 
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="featured"
+              value="true"
+              className="rounded border-neutral-300"
+            />
+            Featured destination
+          </label>
+
           <div className="flex gap-3">
             <Button type="submit" variant="primary">
               Save
@@ -295,6 +306,17 @@ async function EditDestinationForm({
             label="Hero Image"
             typeFilter="IMAGE"
           />
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="featured"
+              value="true"
+              defaultChecked={destination.featured}
+              className="rounded border-neutral-300"
+            />
+            Featured destination
+          </label>
 
           <div className="flex gap-3">
             <Button type="submit" variant="primary">
