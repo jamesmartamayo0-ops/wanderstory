@@ -10,6 +10,7 @@ import * as mediaService from "@/services/media.service";
 import {
   updateJourney,
   updateJourneyStatus,
+  updatePublicationConsent,
 } from "@/actions/journey.actions";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -306,6 +307,71 @@ export default async function JourneyEditPage({
                 No transitions available from {journey.status}.
               </p>
             )}
+          </div>
+
+          <div className="rounded-lg border p-6">
+            <h2 className="mb-4 text-lg font-semibold">Publication Consent</h2>
+            <p className="mb-3 text-sm text-neutral-500">
+              Status:{" "}
+              {journey.publicationConsent?.consentGiven ? (
+                <Badge variant="default">Given</Badge>
+              ) : (
+                <Badge variant="draft">Not Given</Badge>
+              )}
+            </p>
+
+            <form
+              action={updatePublicationConsent.bind(null, id) as (formData: FormData) => void}
+            >
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="consentClientId" className="block text-sm font-medium">
+                    Client
+                  </label>
+                  <select
+                    id="consentClientId"
+                    name="consentClientId"
+                    defaultValue={journey.publicationConsent?.clientId ?? journey.clientId}
+                    className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                  >
+                    <option value="">Select a client</option>
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="consentGiven"
+                    value="true"
+                    defaultChecked={journey.publicationConsent?.consentGiven ?? false}
+                    className="rounded border-neutral-300"
+                  />
+                  Consent given
+                </label>
+
+                <div>
+                  <label htmlFor="consentNotes" className="block text-sm font-medium">
+                    Notes
+                  </label>
+                  <textarea
+                    id="consentNotes"
+                    name="consentNotes"
+                    rows={2}
+                    defaultValue={journey.publicationConsent?.notes ?? ""}
+                    className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <Button type="submit" variant="primary">
+                  Save Consent
+                </Button>
+              </div>
+            </form>
           </div>
 
           <div className="rounded-lg border p-6">

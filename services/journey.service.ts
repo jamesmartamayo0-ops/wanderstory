@@ -84,6 +84,7 @@ export async function getJourneyById(id: string) {
       media: { orderBy: { order: "asc" } },
       coverMedia: true,
       ogImage: true,
+      publicationConsent: true,
     },
   });
 }
@@ -173,7 +174,12 @@ export async function updateJourneyStatus(
   try {
     const journey = await prisma.journey.findUnique({
       where: { id },
-      select: { id: true, status: true, publishedAt: true },
+      select: {
+        id: true,
+        status: true,
+        publishedAt: true,
+        publicationConsent: { select: { consentGiven: true } },
+      },
     });
 
     if (!journey) {
@@ -187,6 +193,18 @@ export async function updateJourneyStatus(
         success: false,
         error: `Cannot transition from ${journey.status} to ${newStatus}`,
       };
+    }
+
+    if (
+      journey.status === "APPROVED" &&
+      newStatus === "PUBLISHED"
+    ) {
+      if (!journey.publicationConsent?.consentGiven) {
+        return {
+          success: false,
+          error: "Cannot publish without client consent",
+        };
+      }
     }
 
     const updateData: Record<string, unknown> = { status: newStatus };
@@ -206,6 +224,34 @@ export async function updateJourneyStatus(
     return { success: true, data: updated };
   } catch {
     return { success: false, error: "Failed to update journey status" };
+  }
+}
+
+export async function updatePublicationConsent(
+  journeyId: string,
+  data: { consentGiven: boolean; clientId: string; notes?: string }
+): Promise<ActionResult> {
+  try {
+    const consent = await prisma.publicationConsent.upsert({
+      where: { journeyId },
+      update: {
+        consentGiven: data.consentGiven,
+        clientId: data.clientId,
+        consentedAt: new Date(),
+        notes: data.notes ?? null,
+      },
+      create: {
+        journeyId,
+        consentGiven: data.consentGiven,
+        clientId: data.clientId,
+        consentedAt: new Date(),
+        notes: data.notes ?? null,
+      },
+    });
+
+    return { success: true, data: consent };
+  } catch {
+    return { success: false, error: "Failed to update publication consent" };
   }
 }
 

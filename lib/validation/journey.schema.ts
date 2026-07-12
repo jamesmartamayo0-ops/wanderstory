@@ -30,6 +30,7 @@ export const updateJourneySchema = z.object({
   categoryIds: z.array(z.string()).optional(),
   coverMediaId: z.string().optional().or(z.literal("")),
   ogImageId: z.string().optional().or(z.literal("")),
+  consentGiven: z.boolean().optional(),
 });
 
 export const autosaveJourneySchema = updateJourneySchema;

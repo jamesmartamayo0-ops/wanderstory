@@ -149,6 +149,35 @@ export async function toggleJourneyFeatured(
   return result;
 }
 
+export async function updatePublicationConsent(
+  journeyId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const consentGiven = formData.get("consentGiven") === "true";
+  const clientId = formData.get("consentClientId") as string;
+  const notes = formData.get("consentNotes") as string | null;
+
+  if (!clientId) {
+    return { success: false, error: "Client is required" };
+  }
+
+  const result = await journeyService.updatePublicationConsent(journeyId, {
+    consentGiven,
+    clientId,
+    notes: notes || undefined,
+  });
+
+  if (result.success) {
+    revalidatePath("/admin/journeys");
+  }
+  return result;
+}
+
 export async function autosaveJourney(
   id: string,
   data: Record<string, unknown>
