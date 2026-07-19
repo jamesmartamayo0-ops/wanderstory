@@ -82,6 +82,9 @@ export async function deleteDestination(id: string): Promise<ActionResult> {
   const result = await destinationService.deleteDestination(id);
   if (result.success) {
     revalidatePath("/admin/destinations");
+    revalidatePath("/destinations");
+    revalidatePath("/destinations/[slug]");
+    revalidatePath("/sitemap.xml");
   }
   return result;
 }
