@@ -95,10 +95,22 @@ export async function deleteDestination(id: string): Promise<ActionResult> {
   }
 }
 
+export async function updateDestinationPublished(
+  id: string,
+  published: boolean
+): Promise<ActionResult> {
+  try {
+    await prisma.destination.update({ where: { id }, data: { published } });
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to update destination status" };
+  }
+}
+
 export async function getPublicDestinationBySlug(slug: string) {
   try {
     const destination = await prisma.destination.findUnique({
-      where: { slug },
+      where: { slug, published: true },
       select: {
         id: true,
         name: true,
@@ -150,7 +162,7 @@ export async function getPublicDestinationBySlug(slug: string) {
 export async function getFeaturedDestinations(take: number = 6) {
   try {
     return prisma.destination.findMany({
-      where: { featured: true },
+      where: { featured: true, published: true },
       take,
       orderBy: { name: "asc" },
       include: {
@@ -167,6 +179,7 @@ export async function getFeaturedDestinations(take: number = 6) {
 export async function getPublicDestinationSlugs() {
   try {
     return prisma.destination.findMany({
+      where: { published: true },
       select: {
         slug: true,
         updatedAt: true,
@@ -180,6 +193,7 @@ export async function getPublicDestinationSlugs() {
 export async function getPublicDestinations() {
   try {
     return prisma.destination.findMany({
+      where: { published: true },
       orderBy: { name: "asc" },
       include: {
         heroMedia: {

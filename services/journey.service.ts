@@ -235,13 +235,18 @@ export async function getPublicJourneys() {
       },
       orderBy: [{ featured: "desc" }, { publishedAt: "desc" }],
       include: {
-        destination: { select: { name: true, country: true } },
+        destination: { select: { name: true, country: true, published: true } },
         coverMedia: { select: { url: true, altText: true } },
         _count: { select: { chapters: true } },
       },
     });
 
-    return journeys;
+    return journeys.map((j) => ({
+      ...j,
+      destination: j.destination.published
+        ? { name: j.destination.name, country: j.destination.country }
+        : null,
+    }));
   } catch {
     return [];
   }
@@ -270,7 +275,7 @@ export async function getPublicJourneyBySlug(slug: string) {
         canonicalUrl: true,
         structuredData: true,
         destination: {
-          select: { name: true, country: true, slug: true },
+          select: { name: true, country: true, slug: true, published: true },
         },
         coverMedia: {
           select: {
@@ -342,6 +347,10 @@ export async function getPublicJourneyBySlug(slug: string) {
         },
       },
     });
+
+    if (journey && !journey.destination.published) {
+      return { ...journey, destination: null };
+    }
 
     return journey;
   } catch {

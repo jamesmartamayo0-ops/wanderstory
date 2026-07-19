@@ -6,6 +6,7 @@ export const createDestinationSchema = z.object({
   region: z.string().optional().or(z.literal("")),
   description: z.string().optional().or(z.literal("")),
   featured: z.boolean().optional(),
+  published: z.boolean().optional(),
 });
 
 export const updateDestinationSchema = z.object({
@@ -15,6 +16,7 @@ export const updateDestinationSchema = z.object({
   description: z.string().optional().or(z.literal("")),
   heroMediaId: z.string().optional().or(z.literal("")),
   featured: z.boolean().optional(),
+  published: z.boolean().optional(),
 });
 
 export type CreateDestinationInput = z.infer<typeof createDestinationSchema>;

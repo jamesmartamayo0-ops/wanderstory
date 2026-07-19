@@ -175,13 +175,14 @@ model Destination {
   region      String?
   description String?   @db.Text
   featured    Boolean   @default(false)
+  published   Boolean   @default(false)
   heroMedia   Media?    @relation(fields: [heroMediaId], references: [id])
   heroMediaId String?   @unique
   journeys    Journey[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@index([featured])
+  @@index([featured, published])
 }
 
 model Category {

@@ -25,6 +25,7 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
       description: formData.get("description"),
       heroMediaId: formData.get("heroMediaId"),
       featured: formData.get("featured") === "true",
+      published: formData.get("published") === "true",
     });
 
     if (!parsed.success) {
@@ -38,6 +39,9 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
     const result = await destinationService.updateDestination(id, parsed.data);
     if (result.success) {
       revalidatePath("/admin/destinations");
+      revalidatePath("/destinations");
+      revalidatePath("/destinations/[slug]");
+      revalidatePath("/sitemap.xml");
     }
     return result;
   }
@@ -48,6 +52,7 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
     region: formData.get("region"),
     description: formData.get("description"),
     featured: formData.get("featured") === "true",
+    published: formData.get("published") === "true",
   });
 
   if (!parsed.success) {
@@ -61,6 +66,9 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
   const result = await destinationService.createDestination(parsed.data);
   if (result.success) {
     revalidatePath("/admin/destinations");
+    revalidatePath("/destinations");
+    revalidatePath("/destinations/[slug]");
+    revalidatePath("/sitemap.xml");
   }
   return result;
 }
@@ -74,6 +82,28 @@ export async function deleteDestination(id: string): Promise<ActionResult> {
   const result = await destinationService.deleteDestination(id);
   if (result.success) {
     revalidatePath("/admin/destinations");
+  }
+  return result;
+}
+
+export async function updateDestinationPublished(
+  id: string,
+  published: boolean
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const result = await destinationService.updateDestinationPublished(
+    id,
+    published
+  );
+  if (result.success) {
+    revalidatePath("/admin/destinations");
+    revalidatePath("/destinations");
+    revalidatePath("/destinations/[slug]");
+    revalidatePath("/sitemap.xml");
   }
   return result;
 }

@@ -6,6 +6,7 @@ import * as mediaService from "@/services/media.service";
 import {
   saveDestination,
   deleteDestination,
+  updateDestinationPublished,
 } from "@/actions/destination.actions";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -73,6 +74,7 @@ async function DestinationList({
                 <th className="px-4 py-3 text-left font-medium">Name</th>
                 <th className="px-4 py-3 text-left font-medium">Country</th>
                 <th className="px-4 py-3 text-left font-medium">Region</th>
+                <th className="px-4 py-3 text-center font-medium">Status</th>
                 <th className="px-4 py-3 text-center font-medium">Featured</th>
                 <th className="px-4 py-3 text-center font-medium">Journeys</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -89,12 +91,38 @@ async function DestinationList({
                     {destination.region || "—"}
                   </td>
                   <td className="px-4 py-3 text-center">
+                    <Badge variant={destination.published ? "published" : "draft"}>
+                      {destination.published ? "Published" : "Draft"}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {destination.featured ? "★" : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-center">
                     <Badge variant="default">
                       {destination._count.journeys}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
+                      <form
+                        action={updateDestinationPublished.bind(
+                          null,
+                          destination.id,
+                          !destination.published
+                        ) as unknown as (formData: FormData) => void}
+                      >
+                        <button
+                          type="submit"
+                          className={`text-sm hover:underline ${
+                            destination.published
+                              ? "text-amber-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {destination.published ? "Unpublish" : "Publish"}
+                        </button>
+                      </form>
                       <a
                         href={`/admin/destinations?edit=${destination.id}`}
                         className="text-sm text-blue-600 hover:underline"
@@ -203,6 +231,16 @@ async function CreateDestinationForm() {
               className="rounded border-neutral-300"
             />
             Featured destination
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="published"
+              value="true"
+              className="rounded border-neutral-300"
+            />
+            Published
           </label>
 
           <div className="flex gap-3">
@@ -316,6 +354,17 @@ async function EditDestinationForm({
               className="rounded border-neutral-300"
             />
             Featured destination
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="published"
+              value="true"
+              defaultChecked={destination.published}
+              className="rounded border-neutral-300"
+            />
+            Published
           </label>
 
           <div className="flex gap-3">

@@ -78,6 +78,7 @@ async function main() {
         region: d.region,
         description: d.desc,
         featured: true,
+        published: true,
         heroMediaId: mediaId,
       },
       create: {
@@ -88,6 +89,7 @@ async function main() {
         region: d.region,
         description: d.desc,
         featured: true,
+        published: true,
         heroMediaId: mediaId,
       },
     });
@@ -117,8 +119,8 @@ async function main() {
   // 2. Destination
   const destination = await prisma.destination.upsert({
     where: { id: DESTINATION_ID },
-    update: { name: "Seed Destination", slug: "seed-destination", country: "Testland" },
-    create: { id: DESTINATION_ID, name: "Seed Destination", slug: "seed-destination", country: "Testland" },
+    update: { name: "Seed Destination", slug: "seed-destination", country: "Testland", published: true },
+    create: { id: DESTINATION_ID, name: "Seed Destination", slug: "seed-destination", country: "Testland", published: true },
   });
   console.log(`Destination ready: ${destination.id}`);
 
