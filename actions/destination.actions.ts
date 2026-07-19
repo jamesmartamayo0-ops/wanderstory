@@ -47,6 +47,7 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
     country: formData.get("country"),
     region: formData.get("region"),
     description: formData.get("description"),
+    featured: formData.get("featured") === "true",
   });
 
   if (!parsed.success) {

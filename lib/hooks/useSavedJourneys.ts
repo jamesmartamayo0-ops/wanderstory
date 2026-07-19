@@ -26,23 +26,25 @@ export function useSavedJourneys() {
 
   const save = useCallback(
     (journey: Omit<SavedJourney, "savedAt">) => {
-      const updated = [
-        ...saved,
-        { ...journey, savedAt: new Date().toISOString() },
-      ];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      setSaved(updated);
+      const newItem = { ...journey, savedAt: new Date().toISOString() };
+      setSaved((prev) => {
+        const updated = [...prev, newItem];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
     },
-    [saved]
+    []
   );
 
   const unsave = useCallback(
     (slug: string) => {
-      const updated = saved.filter((j) => j.slug !== slug);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      setSaved(updated);
+      setSaved((prev) => {
+        const updated = prev.filter((j) => j.slug !== slug);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
     },
-    [saved]
+    []
   );
 
   const remove = unsave;

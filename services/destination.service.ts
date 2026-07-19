@@ -1,16 +1,10 @@
 import prisma from "../lib/prisma";
+import { generateSlug, ensureUniqueSlug } from "../lib/slug";
 import type {
   CreateDestinationInput,
   UpdateDestinationInput,
 } from "../lib/validation/destination.schema";
 import type { ActionResult } from "../types";
-
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 export async function getAllDestinations() {
   return prisma.destination.findMany({
@@ -30,33 +24,14 @@ export async function getDestinationBySlug(slug: string) {
   return prisma.destination.findUnique({ where: { slug } });
 }
 
-async function ensureUniqueSlug(
-  baseSlug: string,
-  excludeId?: string
-): Promise<string> {
-  let slug = baseSlug;
-  let counter = 1;
-
-  while (true) {
-    const existing = await prisma.destination.findUnique({
-      where: { slug },
-    });
-
-    if (!existing || (excludeId && existing.id === excludeId)) {
-      return slug;
-    }
-
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-}
-
 export async function createDestination(
   data: CreateDestinationInput
 ): Promise<ActionResult> {
   try {
     const baseSlug = generateSlug(data.name);
-    const slug = await ensureUniqueSlug(baseSlug);
+    const slug = await ensureUniqueSlug(baseSlug, (s) =>
+      prisma.destination.findUnique({ where: { slug: s } })
+    );
 
     const destination = await prisma.destination.create({
       data: { ...data, slug },
@@ -76,7 +51,10 @@ export async function updateDestination(
 
     if (data.name) {
       const baseSlug = generateSlug(data.name);
-      updateData.slug = await ensureUniqueSlug(baseSlug, id);
+      updateData.slug = await ensureUniqueSlug(baseSlug, (s) =>
+        prisma.destination.findUnique({ where: { slug: s } }),
+        id
+      );
     }
 
     // convert empty string media ID to null for Prisma

@@ -1,16 +1,10 @@
 import prisma from "../lib/prisma";
+import { generateSlug, ensureUniqueSlug } from "../lib/slug";
 import type {
   CreateCategoryInput,
   UpdateCategoryInput,
 } from "../lib/validation/category.schema";
 import type { ActionResult } from "../types";
-
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 export async function getAllCategories() {
   return prisma.category.findMany({
@@ -27,33 +21,14 @@ export async function getCategoryBySlug(slug: string) {
   return prisma.category.findUnique({ where: { slug } });
 }
 
-async function ensureUniqueSlug(
-  baseSlug: string,
-  excludeId?: string
-): Promise<string> {
-  let slug = baseSlug;
-  let counter = 1;
-
-  while (true) {
-    const existing = await prisma.category.findUnique({
-      where: { slug },
-    });
-
-    if (!existing || (excludeId && existing.id === excludeId)) {
-      return slug;
-    }
-
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-}
-
 export async function createCategory(
   data: CreateCategoryInput
 ): Promise<ActionResult> {
   try {
     const baseSlug = generateSlug(data.name);
-    const slug = await ensureUniqueSlug(baseSlug);
+    const slug = await ensureUniqueSlug(baseSlug, (s) =>
+      prisma.category.findUnique({ where: { slug: s } })
+    );
 
     const category = await prisma.category.create({
       data: { ...data, slug },
@@ -73,7 +48,10 @@ export async function updateCategory(
 
     if (data.name) {
       const baseSlug = generateSlug(data.name);
-      updateData.slug = await ensureUniqueSlug(baseSlug, id);
+      updateData.slug = await ensureUniqueSlug(baseSlug, (s) =>
+        prisma.category.findUnique({ where: { slug: s } }),
+        id
+      );
     }
 
     const category = await prisma.category.update({

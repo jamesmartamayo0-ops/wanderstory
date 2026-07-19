@@ -7,6 +7,7 @@ import * as clientService from "@/services/client.service";
 import * as destinationService from "@/services/destination.service";
 import * as categoryService from "@/services/category.service";
 import * as mediaService from "@/services/media.service";
+import { allowedTransitions } from "@/lib/journey-transitions";
 import {
   updateJourney,
   updateJourneyStatus,
@@ -48,15 +49,7 @@ export default async function JourneyEditPage({
     mediaService.getAllMedia({ type: "IMAGE" as const }),
   ]);
 
-  const availableTransitions: Record<string, string[]> = {
-    DRAFT: ["REVIEW"],
-    REVIEW: ["DRAFT", "APPROVED"],
-    APPROVED: ["PUBLISHED"],
-    PUBLISHED: ["ARCHIVED"],
-    ARCHIVED: [],
-  };
-
-  const transitions = availableTransitions[journey.status] || [];
+  const transitions = allowedTransitions[journey.status as keyof typeof allowedTransitions] || [];
 
   return (
     <div>

@@ -1,48 +1,11 @@
 import prisma from "../lib/prisma";
-import { JourneyStatus } from "../app/generated/prisma/enums";
+import { generateSlug, ensureUniqueSlug } from "../lib/slug";
+import { allowedTransitions, type JourneyStatusValue } from "../lib/journey-transitions";
 import type {
   CreateJourneyInput,
   UpdateJourneyInput,
 } from "../lib/validation/journey.schema";
 import type { ActionResult } from "../types";
-
-type JourneyStatusValue = (typeof JourneyStatus)[keyof typeof JourneyStatus];
-
-const allowedTransitions: Record<JourneyStatusValue, JourneyStatusValue[]> = {
-  DRAFT: ["REVIEW"],
-  REVIEW: ["DRAFT", "APPROVED"],
-  APPROVED: ["PUBLISHED"],
-  PUBLISHED: ["ARCHIVED"],
-  ARCHIVED: [],
-};
-
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-async function ensureUniqueSlug(
-  baseSlug: string,
-  excludeId?: string
-): Promise<string> {
-  let slug = baseSlug;
-  let counter = 1;
-
-  while (true) {
-    const existing = await prisma.journey.findUnique({
-      where: { slug },
-    });
-
-    if (!existing || (excludeId && existing.id === excludeId)) {
-      return slug;
-    }
-
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-}
 
 export type JourneyFilters = {
   status?: JourneyStatusValue;
@@ -94,7 +57,9 @@ export async function createJourney(
 ): Promise<ActionResult> {
   try {
     const baseSlug = generateSlug(data.title);
-    const slug = await ensureUniqueSlug(baseSlug);
+    const slug = await ensureUniqueSlug(baseSlug, (s) =>
+      prisma.journey.findUnique({ where: { slug: s } })
+    );
 
     const { categoryIds, ...journeyData } = data;
 
@@ -125,31 +90,36 @@ export async function updateJourney(
 
     if (data.title) {
       const baseSlug = generateSlug(data.title);
-      updateData.slug = await ensureUniqueSlug(baseSlug, id);
+      updateData.slug = await ensureUniqueSlug(baseSlug, (s) =>
+        prisma.journey.findUnique({ where: { slug: s } }),
+        id
+      );
     }
 
-    if (data.categoryIds !== undefined) {
-      await prisma.journeyCategory.deleteMany({ where: { journeyId: id } });
-
-      if (data.categoryIds.length > 0) {
-        await prisma.journeyCategory.createMany({
-          data: data.categoryIds.map((categoryId) => ({
-            journeyId: id,
-            categoryId,
-          })),
-        });
-      }
-    }
-
-    const { categoryIds, ...restData } = updateData as Record<string, unknown>;
+    const { categoryIds: _, ...restData } = updateData as Record<string, unknown>;
 
     // convert empty string media IDs to null for Prisma
     if (restData.coverMediaId === "") restData.coverMediaId = null;
     if (restData.ogImageId === "") restData.ogImageId = null;
 
-    const journey = await prisma.journey.update({
-      where: { id },
-      data: restData,
+    const journey = await prisma.$transaction(async (tx) => {
+      if (data.categoryIds !== undefined) {
+        await tx.journeyCategory.deleteMany({ where: { journeyId: id } });
+
+        if (data.categoryIds.length > 0) {
+          await tx.journeyCategory.createMany({
+            data: data.categoryIds.map((categoryId) => ({
+              journeyId: id,
+              categoryId,
+            })),
+          });
+        }
+      }
+
+      return tx.journey.update({
+        where: { id },
+        data: restData,
+      });
     });
 
     return { success: true, data: journey };

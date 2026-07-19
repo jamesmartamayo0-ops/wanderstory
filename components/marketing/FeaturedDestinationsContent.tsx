@@ -51,7 +51,7 @@ export default function FeaturedDestinationsContent({
       {destinations.map((dest) => (
         <motion.div key={dest.id} variants={item}>
           <Link
-            href={`/destinations/${(dest as FeaturedDestination & { slug: string }).slug}`}
+            href={`/destinations/${dest.slug}`}
             className="block"
           >
             <DestinationCard destination={dest} />

@@ -30,12 +30,12 @@ export default function Navbar() {
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 pointer-events-none ${
           isScrolled ? "py-3" : "py-5"
         }`}
       >
         <div
-          className={`mx-auto flex max-w-6xl items-center justify-between rounded-[var(--radius-pill)] px-6 py-2.5 transition-all duration-300 ${
+          className={`mx-auto flex max-w-6xl items-center justify-between rounded-[var(--radius-pill)] px-6 py-2.5 transition-all duration-300 pointer-events-auto ${
             isScrolled
               ? "border border-white/40 bg-white/70 shadow-[var(--shadow-elevated)] backdrop-blur-xl"
               : "border border-transparent bg-transparent"
