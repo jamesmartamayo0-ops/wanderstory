@@ -9,6 +9,7 @@ import {
   updateDestinationPublished,
 } from "@/actions/destination.actions";
 import Button from "@/components/ui/Button";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import MediaSelectField from "@/components/admin/MediaSelectField";
@@ -130,21 +131,7 @@ async function DestinationList({
                         Edit
                       </a>
                       <form action={deleteDestination.bind(null, destination.id) as unknown as (formData: FormData) => void}>
-                        <button
-                          type="submit"
-                          className="text-sm text-red-600 hover:underline"
-                          onClick={(e) => {
-                            if (
-                              !confirm(
-                                "Are you sure you want to delete this destination?"
-                              )
-                            ) {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
+                        <ConfirmDeleteButton confirmMessage="Are you sure you want to delete this destination?" />
                       </form>
                     </div>
                   </td>

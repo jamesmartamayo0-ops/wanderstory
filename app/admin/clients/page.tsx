@@ -4,6 +4,7 @@ import * as clientService from "@/services/client.service";
 import { createClient, updateClient, deleteClient } from "@/actions/client.actions";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 
@@ -92,21 +93,7 @@ async function ClientList({
                         Edit
                       </a>
                       <form action={deleteClient.bind(null, client.id) as unknown as (formData: FormData) => void}>
-                        <button
-                          type="submit"
-                          className="text-sm text-red-600 hover:underline"
-                          onClick={(e) => {
-                            if (
-                              !confirm(
-                                "Are you sure you want to delete this client?"
-                              )
-                            ) {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
+                        <ConfirmDeleteButton confirmMessage="Are you sure you want to delete this client?" />
                       </form>
                     </div>
                   </td>

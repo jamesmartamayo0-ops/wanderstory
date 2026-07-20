@@ -7,6 +7,7 @@ import {
   deleteCategory,
 } from "@/actions/category.actions";
 import Button from "@/components/ui/Button";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 
@@ -97,21 +98,7 @@ async function CategoryList({
                         Edit
                       </a>
                       <form action={deleteCategory.bind(null, category.id) as unknown as (formData: FormData) => void}>
-                        <button
-                          type="submit"
-                          className="text-sm text-red-600 hover:underline"
-                          onClick={(e) => {
-                            if (
-                              !confirm(
-                                "Are you sure you want to delete this category?"
-                              )
-                            ) {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
+                        <ConfirmDeleteButton confirmMessage="Are you sure you want to delete this category?" />
                       </form>
                     </div>
                   </td>

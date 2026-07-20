@@ -11,6 +11,7 @@ import {
   toggleJourneyFeatured,
 } from "@/actions/journey.actions";
 import Button from "@/components/ui/Button";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 
@@ -156,17 +157,7 @@ async function JourneyList({
                         Edit
                       </a>
                       <form action={deleteJourney.bind(null, journey.id) as unknown as (formData: FormData) => void}>
-                        <button
-                          type="submit"
-                          className="text-sm text-red-600 hover:underline"
-                          onClick={(e) => {
-                            if (!confirm("Are you sure you want to delete this journey?")) {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
+                        <ConfirmDeleteButton confirmMessage="Are you sure you want to delete this journey?" />
                       </form>
                     </div>
                   </td>

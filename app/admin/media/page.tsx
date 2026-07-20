@@ -4,6 +4,7 @@ import Link from "next/link";
 import * as mediaService from "@/services/media.service";
 import { deleteMedia } from "@/actions/media.actions";
 import Button from "@/components/ui/Button";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import EmptyState from "@/components/ui/EmptyState";
 
 const typeLabels: Record<string, string> = {
@@ -166,17 +167,10 @@ actionLabel="Upload"
 
               <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                 <form action={deleteMedia.bind(null, item.id) as unknown as (formData: FormData) => void}>
-                  <button
-                    type="submit"
+                  <ConfirmDeleteButton
+                    confirmMessage="Delete this media?"
                     className="rounded-md bg-red-600 px-3 py-1 text-xs text-white hover:bg-red-700"
-                    onClick={(e) => {
-                      if (!confirm("Delete this media?")) {
-                        e.preventDefault();
-                      }
-                    }}
-                  >
-                    Delete
-                  </button>
+                  />
                 </form>
               </div>
             </div>
