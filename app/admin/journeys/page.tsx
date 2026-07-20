@@ -151,7 +151,7 @@ async function JourneyList({
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
                       <a
-                        href={`/admin/journeys/${journey.id}/edit`}
+                        href={`/admin/journeys/${journey.id}`}
                         className="text-sm text-blue-600 hover:underline"
                       >
                         Edit
