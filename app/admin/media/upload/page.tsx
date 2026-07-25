@@ -26,7 +26,6 @@ export default async function AdminMediaUploadPage() {
       <div className="max-w-xl rounded-lg border p-6">
         <form
           action={uploadMedia as (formData: FormData) => void}
-          encType="multipart/form-data"
           className="space-y-4"
         >
           <FileUpload
