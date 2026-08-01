@@ -8,6 +8,11 @@ import {
   updateJourneySchema,
   autosaveJourneySchema,
 } from "@/lib/validation/journey.schema";
+import {
+  createChapterSchema,
+  updateChapterSchema,
+  deleteChapterSchema,
+} from "@/lib/validation/chapter.schema";
 import { statusTransitionSchema } from "@/lib/validation/status.schema";
 import * as journeyService from "@/services/journey.service";
 import type { ActionResult } from "@/types";
@@ -198,5 +203,99 @@ export async function autosaveJourney(
   }
 
   const result = await journeyService.updateJourney(id, parsed.data);
+  return result;
+}
+
+export async function createChapter(
+  journeyId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const parsed = createChapterSchema.safeParse({
+    title: formData.get("title"),
+    content: formData.get("content"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Validation failed",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const result = await journeyService.createChapter(journeyId, parsed.data);
+  if (result.success) {
+    revalidatePath("/admin/journeys");
+    revalidatePath(`/admin/journeys/${journeyId}`);
+  }
+  return result;
+}
+
+export async function updateChapter(
+  journeyId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const parsed = updateChapterSchema.safeParse({
+    chapterId: formData.get("chapterId"),
+    title: formData.get("title"),
+    content: formData.get("content"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Validation failed",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const result = await journeyService.updateChapter(
+    journeyId,
+    parsed.data.chapterId,
+    { title: parsed.data.title, content: parsed.data.content }
+  );
+  if (result.success) {
+    revalidatePath("/admin/journeys");
+    revalidatePath(`/admin/journeys/${journeyId}`);
+  }
+  return result;
+}
+
+export async function deleteChapter(
+  journeyId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const parsed = deleteChapterSchema.safeParse({
+    chapterId: formData.get("chapterId"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Validation failed",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const result = await journeyService.deleteChapter(journeyId, parsed.data.chapterId);
+  if (result.success) {
+    revalidatePath("/admin/journeys");
+    revalidatePath(`/admin/journeys/${journeyId}`);
+  }
   return result;
 }
