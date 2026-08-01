@@ -12,10 +12,14 @@ import {
   updateJourney,
   updateJourneyStatus,
   updatePublicationConsent,
+  createChapter,
+  updateChapter,
+  deleteChapter,
 } from "@/actions/journey.actions";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import MediaSelectField from "@/components/admin/MediaSelectField";
+import ChapterEditor from "@/components/admin/ChapterEditor";
 
 const statusColors: Record<string, "draft" | "review" | "approved" | "published" | "archived" | "default"> = {
   DRAFT: "draft",
@@ -268,6 +272,16 @@ export default async function JourneyEditPage({
                 </Link>
               </div>
             </form>
+          </div>
+
+          <div className="rounded-lg border p-6">
+            <h2 className="mb-4 text-lg font-semibold">Chapters</h2>
+            <ChapterEditor
+              chapters={journey.chapters}
+              createAction={createChapter.bind(null, id) as (formData: FormData) => void}
+              updateAction={updateChapter.bind(null, id) as (formData: FormData) => void}
+              deleteAction={deleteChapter.bind(null, id) as (formData: FormData) => void}
+            />
           </div>
         </div>
 

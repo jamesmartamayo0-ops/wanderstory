@@ -83,6 +83,7 @@ export default function FileUpload({
           </>
         )}
         <input
+          name="file"
           type="file"
           accept={accept}
           onChange={handleFile}
