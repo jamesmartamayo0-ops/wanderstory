@@ -51,7 +51,7 @@ export async function createJourney(formData: FormData): Promise<ActionResult> {
   if (result.success && result.data) {
     const journey = result.data as { id: string };
     revalidatePath("/admin/journeys");
-    redirect(`/admin/journeys/${journey.id}/edit`);
+    redirect(`/admin/journeys/${journey.id}`);
   }
 
   return result;
