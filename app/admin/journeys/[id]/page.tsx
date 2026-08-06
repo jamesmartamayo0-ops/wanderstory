@@ -11,6 +11,7 @@ import { allowedTransitions } from "@/lib/journey-transitions";
 import {
   updateJourney,
   updateJourneyStatus,
+  updateJourneyVisibility,
   updatePublicationConsent,
   createChapter,
   updateChapter,
@@ -314,6 +315,34 @@ export default async function JourneyEditPage({
                 No transitions available from {journey.status}.
               </p>
             )}
+          </div>
+
+          <div className="rounded-lg border p-6">
+            <h2 className="mb-4 text-lg font-semibold">Visibility</h2>
+            <p className="mb-4 text-sm text-neutral-500">
+              Current: <Badge variant="default">{journey.visibility}</Badge>
+            </p>
+
+            <div className="space-y-2">
+              {(["PRIVATE", "PUBLIC"] as const).map((visibility) => (
+                <form
+                  key={visibility}
+                  action={updateJourneyVisibility.bind(null, id) as (formData: FormData) => void}
+                >
+                  <input type="hidden" name="visibility" value={visibility} />
+                  <button
+                    type="submit"
+                    className={`w-full rounded-md border px-3 py-2 text-sm ${
+                      journey.visibility === visibility
+                        ? "border-blue-300 bg-blue-50 text-blue-700"
+                        : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                    }`}
+                  >
+                    {visibility}
+                  </button>
+                </form>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-lg border p-6">

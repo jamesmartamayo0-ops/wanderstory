@@ -1,6 +1,7 @@
 import prisma from "../lib/prisma";
 import { generateSlug, ensureUniqueSlug } from "../lib/slug";
 import { allowedTransitions, type JourneyStatusValue } from "../lib/journey-transitions";
+import { JourneyVisibility } from "../app/generated/prisma/enums";
 import type {
   CreateJourneyInput,
   UpdateJourneyInput,
@@ -13,6 +14,8 @@ export type JourneyFilters = {
   clientId?: string;
   destinationId?: string;
 };
+
+export type JourneyVisibilityValue = (typeof JourneyVisibility)[keyof typeof JourneyVisibility];
 
 export async function getAllJourneys(filters?: JourneyFilters) {
   return prisma.journey.findMany({
@@ -194,6 +197,31 @@ export async function updateJourneyStatus(
     return { success: true, data: updated };
   } catch {
     return { success: false, error: "Failed to update journey status" };
+  }
+}
+
+export async function updateJourneyVisibility(
+  id: string,
+  newVisibility: JourneyVisibilityValue
+): Promise<ActionResult> {
+  try {
+    const journey = await prisma.journey.findUnique({
+      where: { id },
+      select: { id: true, visibility: true },
+    });
+
+    if (!journey) {
+      return { success: false, error: "Journey not found" };
+    }
+
+    const updated = await prisma.journey.update({
+      where: { id },
+      data: { visibility: newVisibility },
+    });
+
+    return { success: true, data: updated };
+  } catch {
+    return { success: false, error: "Failed to update journey visibility" };
   }
 }
 

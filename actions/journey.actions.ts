@@ -154,6 +154,48 @@ export async function toggleJourneyFeatured(
   return result;
 }
 
+export async function updateJourneyVisibility(
+  id: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const parsed = updateJourneySchema.safeParse({
+    visibility: formData.get("visibility"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Validation failed",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  if (!parsed.data.visibility) {
+    return {
+      success: false,
+      error: "Validation failed",
+    };
+  }
+
+  const result = await journeyService.updateJourneyVisibility(
+    id,
+    parsed.data.visibility
+  );
+  if (result.success) {
+    revalidatePath("/admin/journeys");
+    revalidatePath(`/admin/journeys/${id}`);
+    revalidatePath("/journeys");
+    revalidatePath("/journeys/[slug]", "page");
+    revalidatePath("/sitemap.xml");
+  }
+  return result;
+}
+
 export async function updatePublicationConsent(
   journeyId: string,
   formData: FormData

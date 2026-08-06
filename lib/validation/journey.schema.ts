@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { JourneyVisibility } from "../../app/generated/prisma/enums";
 
 const dateStringToDate = z.preprocess(
   (val) => {
@@ -30,6 +31,7 @@ export const updateJourneySchema = z.object({
   categoryIds: z.array(z.string()).optional(),
   coverMediaId: z.string().optional().or(z.literal("")),
   ogImageId: z.string().optional().or(z.literal("")),
+  visibility: z.nativeEnum(JourneyVisibility).optional(),
 });
 
 export const autosaveJourneySchema = updateJourneySchema;
