@@ -39,6 +39,27 @@ enum MediaRole {
   OG_IMAGE
 }
 
+enum AuditEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  JOURNEY_CREATED
+  JOURNEY_UPDATED
+  JOURNEY_DELETED
+  MEDIA_UPLOADED
+  MEDIA_DELETED_PERMANENT
+  CHAPTER_DELETED
+  PUBLICATION_CONSENT_CHANGED
+}
+
+enum AuditTargetType {
+  JOURNEY
+  MEDIA
+  CHAPTER
+  CLIENT
+  ADMIN
+}
+
 model Admin {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -47,6 +68,8 @@ model Admin {
   role         AdminRole @default(SUPER_ADMIN)
   journeys     Journey[]
   media        Media[]
+  auditLogs    AuditLog[]
+  loginAttempts LoginAttempt[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -247,4 +270,49 @@ model Media {
   @@index([uploaderId])
   @@index([type])
   @@index([provider])
+}
+
+model AuditLog {
+  id         String           @id @default(cuid())
+  actor      Admin?           @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorId    String?
+  actorEmail String
+  eventType  AuditEventType
+  targetType AuditTargetType?
+  targetId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime         @default(now())
+
+  @@index([createdAt])
+  @@index([eventType, createdAt])
+  @@index([actorId])
+  @@index([targetType, targetId])
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  success   Boolean
+  ipAddress String?
+  userAgent String?
+  admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  adminId   String?
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ipAddress, createdAt])
+  @@index([success])
+  @@index([createdAt])
+}
+
+model RateLimitEntry {
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@id([key, windowStart])
+  @@index([windowStart])
 }

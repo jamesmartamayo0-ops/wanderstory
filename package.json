@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "security:maintain": "tsx scripts/security-maintenance.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
