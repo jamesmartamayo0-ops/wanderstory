@@ -6,12 +6,18 @@ import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Textarea from "@/components/ui/Textarea";
 import ConfirmDeleteButton from "./ConfirmDeleteButton";
+import ChapterMediaSection, {
+  type ChapterMediaItem,
+  type ChapterMediaActions,
+  type LibraryMediaItem,
+} from "./ChapterMediaSection";
 
 type Chapter = {
   id: string;
   title: string;
   content: string;
   order: number;
+  media: ChapterMediaItem[];
 };
 
 type ChapterEditorProps = {
@@ -19,6 +25,8 @@ type ChapterEditorProps = {
   createAction: (formData: FormData) => void;
   updateAction: (formData: FormData) => void;
   deleteAction: (formData: FormData) => void;
+  libraryMedia: LibraryMediaItem[];
+  mediaActions: Record<string, ChapterMediaActions>;
 };
 
 export default function ChapterEditor({
@@ -26,6 +34,8 @@ export default function ChapterEditor({
   createAction,
   updateAction,
   deleteAction,
+  libraryMedia,
+  mediaActions,
 }: ChapterEditorProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
@@ -104,6 +114,13 @@ export default function ChapterEditor({
                     </form>
                   </div>
                 </div>
+
+                <ChapterMediaSection
+                  key={chapter.media.map((m) => m.id).join("|")}
+                  medias={chapter.media}
+                  libraryMedia={libraryMedia}
+                  actions={mediaActions[chapter.id]}
+                />
               </div>
             )}
           </Card>

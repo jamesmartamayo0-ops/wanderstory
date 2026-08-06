@@ -45,7 +45,6 @@ export const cloudinaryProvider: StorageProvider = {
         height: 300,
         crop: "fill",
         quality: "auto",
-        format: "auto",
       });
 
       try {

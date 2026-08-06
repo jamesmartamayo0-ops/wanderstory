@@ -7,6 +7,7 @@ import type {
   UpdateJourneyInput,
 } from "../lib/validation/journey.schema";
 import type { ActionResult } from "../types";
+import { purgeMediaAssets } from "./media.service";
 
 export type JourneyFilters = {
   status?: JourneyStatusValue;
@@ -44,7 +45,12 @@ export async function getJourneyById(id: string) {
       client: true,
       destination: true,
       categories: { include: { category: true } },
-      chapters: { orderBy: { order: "asc" } },
+      chapters: {
+        orderBy: { order: "asc" },
+        include: {
+          media: { orderBy: { order: "asc" } },
+        },
+      },
       timelineEvents: { orderBy: { order: "asc" } },
       quotes: { orderBy: { order: "asc" } },
       media: { orderBy: { order: "asc" } },
@@ -133,7 +139,30 @@ export async function updateJourney(
 
 export async function deleteJourney(id: string): Promise<ActionResult> {
   try {
+    // Collect Cloudinary provider IDs before the database cascade removes media rows.
+    const journey = await prisma.journey.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        media: { select: { providerId: true } },
+        chapters: {
+          select: { media: { select: { providerId: true } } },
+        },
+      },
+    });
+
+    if (!journey) {
+      return { success: false, error: "Journey not found" };
+    }
+
+    const providerIds = [
+      ...journey.media.map((m) => m.providerId),
+      ...journey.chapters.flatMap((c) => c.media.map((m) => m.providerId)),
+    ];
+
     await prisma.journey.delete({ where: { id } });
+    await purgeMediaAssets(providerIds);
+
     return { success: true };
   } catch {
     return { success: false, error: "Failed to delete journey" };
@@ -403,72 +432,6 @@ export async function getPublicJourneySlugs() {
     return journeys;
   } catch {
     return [];
-  }
-}
-
-export async function createChapter(
-  journeyId: string,
-  data: { title: string; content: string }
-): Promise<ActionResult> {
-  try {
-    const maxOrder = await prisma.chapter.aggregate({
-      where: { journeyId },
-      _max: { order: true },
-    });
-    const nextOrder = (maxOrder._max.order ?? 0) + 1;
-
-    const chapter = await prisma.chapter.create({
-      data: {
-        journeyId,
-        title: data.title,
-        content: data.content,
-        order: nextOrder,
-      },
-    });
-
-    return { success: true, data: chapter };
-  } catch {
-    return { success: false, error: "Failed to create chapter" };
-  }
-}
-
-export async function updateChapter(
-  journeyId: string,
-  chapterId: string,
-  data: { title: string; content: string }
-): Promise<ActionResult> {
-  try {
-    const result = await prisma.chapter.updateMany({
-      where: { id: chapterId, journeyId },
-      data: { title: data.title, content: data.content },
-    });
-
-    if (result.count === 0) {
-      return { success: false, error: "Chapter not found" };
-    }
-
-    return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update chapter" };
-  }
-}
-
-export async function deleteChapter(
-  journeyId: string,
-  chapterId: string
-): Promise<ActionResult> {
-  try {
-    const result = await prisma.chapter.deleteMany({
-      where: { id: chapterId, journeyId },
-    });
-
-    if (result.count === 0) {
-      return { success: false, error: "Chapter not found" };
-    }
-
-    return { success: true };
-  } catch {
-    return { success: false, error: "Failed to delete chapter" };
   }
 }
 

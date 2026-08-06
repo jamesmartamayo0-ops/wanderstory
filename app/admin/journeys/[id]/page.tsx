@@ -13,10 +13,21 @@ import {
   updateJourneyStatus,
   updateJourneyVisibility,
   updatePublicationConsent,
+} from "@/actions/journey.actions";
+import {
   createChapter,
   updateChapter,
   deleteChapter,
-} from "@/actions/journey.actions";
+} from "@/actions/chapter.actions";
+import {
+  uploadChapterMedia,
+  attachMediaToChapter,
+  removeChapterMedia,
+  deleteChapterMedia,
+  reorderChapterMedia,
+  updateChapterMediaAltText,
+} from "@/actions/media.actions";
+import type { ChapterMediaActions } from "@/components/admin/ChapterMediaSection";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import MediaSelectField from "@/components/admin/MediaSelectField";
@@ -55,6 +66,31 @@ export default async function JourneyEditPage({
   ]);
 
   const transitions = allowedTransitions[journey.status as keyof typeof allowedTransitions] || [];
+
+  const libraryMedia = media
+    .filter((item) => !item.chapterId)
+    .map((item) => ({
+      id: item.id,
+      fileName: item.fileName,
+      url: item.url,
+      thumbnailUrl: item.thumbnailUrl,
+      type: item.type,
+      mimeType: item.mimeType,
+    }));
+
+  const chapterMediaActions = Object.fromEntries(
+    journey.chapters.map((chapter) => [
+      chapter.id,
+      {
+        uploadAction: uploadChapterMedia.bind(null, id, chapter.id),
+        attachAction: attachMediaToChapter.bind(null, id, chapter.id),
+        removeAction: removeChapterMedia.bind(null, id, chapter.id),
+        deleteAction: deleteChapterMedia.bind(null, id, chapter.id),
+        reorderAction: reorderChapterMedia.bind(null, id, chapter.id),
+        updateAltAction: updateChapterMediaAltText.bind(null, id, chapter.id),
+      } as ChapterMediaActions,
+    ])
+  );
 
   return (
     <div>
@@ -282,6 +318,8 @@ export default async function JourneyEditPage({
               createAction={createChapter.bind(null, id) as (formData: FormData) => void}
               updateAction={updateChapter.bind(null, id) as (formData: FormData) => void}
               deleteAction={deleteChapter.bind(null, id) as (formData: FormData) => void}
+              libraryMedia={libraryMedia}
+              mediaActions={chapterMediaActions}
             />
           </div>
         </div>

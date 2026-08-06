@@ -243,6 +243,7 @@ model Media {
 
   @@index([journeyId])
   @@index([chapterId])
+  @@unique([chapterId, order])
   @@index([uploaderId])
   @@index([type])
   @@index([provider])

@@ -19,6 +19,10 @@ export function getAllowedMimeTypes(): string[] {
   return [...MIME_TYPES];
 }
 
+export function getAllowedChapterMimeTypes(): string[] {
+  return MIME_TYPES.filter((mimeType) => mimeType.startsWith("image/"));
+}
+
 export function getMaxSize(mimeType: string): number {
   if (mimeType.startsWith("video/")) return maxSize.video;
   if (mimeType === "application/pdf") return maxSize.pdf;
