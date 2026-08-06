@@ -85,18 +85,12 @@ export default function ChapterMediaSection({
         <p className="text-sm text-neutral-400">No media attached.</p>
       ) : (
         <div className="space-y-3">
-          <form action={actions.reorderAction}>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {orderedMedias.map((media, index) => (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {orderedMedias.map((media, index) => (
                 <div
                   key={media.id}
                   className="overflow-hidden rounded-lg border bg-white"
                 >
-                  <input
-                    type="hidden"
-                    name="mediaIds"
-                    value={media.id}
-                  />
                   <div className="aspect-video overflow-hidden bg-neutral-100">
                     <img
                       src={media.thumbnailUrl ?? media.url}
@@ -186,16 +180,19 @@ export default function ChapterMediaSection({
                 </div>
               ))}
             </div>
-            <Button
-              type="submit"
-              variant="secondary"
-              size="sm"
-              className="mt-2"
-              disabled={orderIds.length === 0}
-            >
-              Save Order
-            </Button>
-          </form>
+            <form action={actions.reorderAction} className="mt-2">
+              {orderIds.map((id) => (
+                <input key={id} type="hidden" name="mediaIds" value={id} />
+              ))}
+              <Button
+                type="submit"
+                variant="secondary"
+                size="sm"
+                disabled={orderIds.length === 0}
+              >
+                Save Order
+              </Button>
+            </form>
         </div>
       )}
 
