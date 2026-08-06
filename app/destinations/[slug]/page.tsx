@@ -5,6 +5,7 @@ import Footer from "@/components/marketing/Footer";
 import DestinationDetail from "@/components/marketing/destination-detail/DestinationDetail";
 import { getPublicDestinationBySlug } from "@/services/destination.service";
 import { toPublicDestinationDetail } from "@/lib/adapters/destination-detail.adapter";
+import { serializeJsonLd } from "@/lib/json-ld";
 
 interface DestinationPageProps {
   params: Promise<{ slug: string }>;
@@ -54,7 +55,7 @@ export default async function DestinationPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <Navbar />
       <main>

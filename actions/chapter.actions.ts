@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { requireRole } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import {
   createChapterSchema,
@@ -79,9 +80,12 @@ export async function deleteChapter(
   journeyId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requireRole("SUPER_ADMIN");
+  if (!authz.ok) {
+    return {
+      success: false,
+      error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
+    };
   }
 
   const parsed = deleteChapterSchema.safeParse({

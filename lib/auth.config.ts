@@ -4,6 +4,18 @@ export default {
   providers: [],
   session: {
     strategy: "jwt",
+    maxAge: 8 * 60 * 60,
+    updateAge: 60 * 60,
+  },
+  cookies: {
+    sessionToken: {
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        priority: "high",
+      },
+    },
   },
   callbacks: {
     async jwt({ token, user }) {

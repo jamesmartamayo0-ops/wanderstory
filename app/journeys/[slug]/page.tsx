@@ -5,6 +5,7 @@ import Footer from "@/components/marketing/Footer";
 import JourneyDetail from "@/components/marketing/journey-detail/JourneyDetail";
 import { getPublicJourneyBySlug } from "@/services/journey.service";
 import { toPublicJourneyDetail } from "@/lib/adapters/journey-detail.adapter";
+import { serializeJsonLd } from "@/lib/json-ld";
 
 interface JourneyPageProps {
   params: Promise<{ slug: string }>;
@@ -70,7 +71,7 @@ export default async function JourneyPage({ params }: JourneyPageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <Navbar />
       <main>

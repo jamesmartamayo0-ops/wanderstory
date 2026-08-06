@@ -5,6 +5,8 @@ import type { UploadResult } from "./storage/storage.types";
 import type { UpdateMediaInput, MediaFilterInput } from "../lib/validation/media.schema";
 import type { ActionResult } from "../types";
 
+class MediaOperationError extends Error {}
+
 export async function getAllMedia(filters?: MediaFilterInput) {
   const where: Record<string, unknown> = {};
 
@@ -85,8 +87,7 @@ export async function uploadMedia(
       }
     }
 
-    const message = error instanceof Error ? error.message : "Failed to upload media";
-    return { success: false, error: message };
+    return { success: false, error: "Failed to upload media" };
   }
 }
 
@@ -205,9 +206,7 @@ export async function uploadChapterMedia(
       }
     }
 
-    const message =
-      error instanceof Error ? error.message : "Failed to upload chapter media";
-    return { success: false, error: message };
+    return { success: false, error: "Failed to upload chapter media" };
   }
 }
 
@@ -293,7 +292,7 @@ export async function reorderChapterMedia(
         existingIds.length !== expectedIds.length ||
         existingIds.some((id, index) => id !== expectedIds[index])
       ) {
-        throw new Error("Media list does not match chapter");
+        throw new MediaOperationError("Media list does not match chapter");
       }
 
       // Phase 1 — move every item to a negative temporary order to free the 0..n range
@@ -304,7 +303,7 @@ export async function reorderChapterMedia(
           data: { order: -(i + 1) },
         });
         if (result.count === 0) {
-          throw new Error("Media not found in this chapter");
+          throw new MediaOperationError("Media not found in this chapter");
         }
       }
 
@@ -315,16 +314,19 @@ export async function reorderChapterMedia(
           data: { order: i },
         });
         if (result.count === 0) {
-          throw new Error("Media not found in this chapter");
+          throw new MediaOperationError("Media not found in this chapter");
         }
       }
     });
 
     return { success: true };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to reorder chapter media";
-    return { success: false, error: message };
+    if (error instanceof MediaOperationError) {
+      return { success: false, error: error.message };
+    }
+
+    console.error("Reorder failed:", error);
+    return { success: false, error: "Failed to reorder chapter media" };
   }
 }
 

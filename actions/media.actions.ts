@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { requireRole } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fileTypeFromBuffer } from "file-type";
@@ -35,7 +36,7 @@ export async function uploadMedia(formData: FormData): Promise<ActionResult> {
 
   const file = formData.get("file");
 
-  if (!file || !(file instanceof File)) {
+  if (!file || !(file instanceof Blob)) {
     return { success: false, error: "No file provided" };
   }
 
@@ -61,7 +62,7 @@ export async function uploadMedia(formData: FormData): Promise<ActionResult> {
     };
   }
 
-  const name = file.name || "untitled";
+  const name = "name" in file && file.name ? file.name : "untitled";
   const ext = name.includes(".") ? name.split(".").pop() ?? "" : "";
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -94,9 +95,12 @@ export async function uploadMedia(formData: FormData): Promise<ActionResult> {
 }
 
 export async function deleteMedia(id: string): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requireRole("SUPER_ADMIN");
+  if (!authz.ok) {
+    return {
+      success: false,
+      error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
+    };
   }
 
   const result = await mediaService.deleteMedia(id);
@@ -286,9 +290,12 @@ export async function deleteChapterMedia(
   chapterId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requireRole("SUPER_ADMIN");
+  if (!authz.ok) {
+    return {
+      success: false,
+      error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
+    };
   }
 
   const parsed = deleteChapterMediaSchema.safeParse({

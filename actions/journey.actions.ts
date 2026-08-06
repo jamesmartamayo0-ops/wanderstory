@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { requireRole } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -91,9 +92,12 @@ export async function updateJourney(
 }
 
 export async function deleteJourney(id: string): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requireRole("SUPER_ADMIN");
+  if (!authz.ok) {
+    return {
+      success: false,
+      error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
+    };
   }
 
   const result = await journeyService.deleteJourney(id);
@@ -122,6 +126,19 @@ export async function updateJourneyStatus(
       error: "Validation failed",
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
+  }
+
+  if (
+    parsed.data.newStatus === "PUBLISHED" ||
+    parsed.data.newStatus === "ARCHIVED"
+  ) {
+    const authz = await requireRole("SUPER_ADMIN");
+    if (!authz.ok) {
+      return {
+        success: false,
+        error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
+      };
+    }
   }
 
   const result = await journeyService.updateJourneyStatus(
@@ -195,9 +212,12 @@ export async function updatePublicationConsent(
   journeyId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requireRole("SUPER_ADMIN");
+  if (!authz.ok) {
+    return {
+      success: false,
+      error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
+    };
   }
 
   const consentGiven = formData.get("consentGiven") === "true";
