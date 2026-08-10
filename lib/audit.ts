@@ -1,5 +1,6 @@
+import { headers } from "next/headers";
 import { prisma } from "./prisma";
-import { sanitizeMetadata } from "./security";
+import { sanitizeMetadata, getTrustedClientIp } from "./security";
 import type {
   AuditEventType,
   AuditTargetType,
@@ -32,4 +33,27 @@ export async function audit(input: AuditInput) {
       userAgent: input.userAgent ?? null,
     },
   });
+}
+
+export async function auditFromRequest(input: AuditInput): Promise<void> {
+  try {
+    let ipAddress = input.ipAddress ?? null;
+    let userAgent = input.userAgent ?? null;
+
+    try {
+      const requestHeaders = await headers();
+      if (ipAddress === null) {
+        ipAddress = getTrustedClientIp(requestHeaders);
+      }
+      if (userAgent === null) {
+        userAgent = requestHeaders.get("user-agent");
+      }
+    } catch {
+      // headers() unavailable — record without request metadata
+    }
+
+    await audit({ ...input, ipAddress, userAgent });
+  } catch (error) {
+    console.error("audit failed:", error);
+  }
 }

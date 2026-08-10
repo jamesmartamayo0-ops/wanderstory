@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { requirePermission } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import {
   createCategorySchema,
@@ -9,13 +9,20 @@ import {
 import * as categoryService from "@/services/category.service";
 import type { ActionResult } from "@/types";
 
-export async function saveCategory(formData: FormData): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
-  }
+function forbidden(authz: { ok: false; reason: "UNAUTHORIZED" | "FORBIDDEN" }): ActionResult {
+  return {
+    success: false,
+    error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
+  };
+}
 
+export async function saveCategory(formData: FormData): Promise<ActionResult> {
   const id = formData.get("id") as string | null;
+
+  const authz = await requirePermission(id ? "category:update" : "category:create");
+  if (!authz.ok) {
+    return forbidden(authz);
+  }
 
   if (id) {
     const parsed = updateCategorySchema.safeParse({
@@ -59,9 +66,9 @@ export async function saveCategory(formData: FormData): Promise<ActionResult> {
 }
 
 export async function deleteCategory(id: string): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("category:delete");
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const result = await categoryService.deleteCategory(id);

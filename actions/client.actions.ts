@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { requirePermission } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import {
   createClientSchema,
@@ -9,10 +9,17 @@ import {
 import * as clientService from "@/services/client.service";
 import type { ActionResult } from "@/types";
 
+function forbidden(authz: { ok: false; reason: "UNAUTHORIZED" | "FORBIDDEN" }): ActionResult {
+  return {
+    success: false,
+    error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
+  };
+}
+
 export async function createClient(formData: FormData): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("client:create");
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const parsed = createClientSchema.safeParse({
@@ -41,9 +48,12 @@ export async function updateClient(
   id: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("client:update", {
+    targetType: "CLIENT",
+    targetId: id,
+  });
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const parsed = updateClientSchema.safeParse({
@@ -69,9 +79,12 @@ export async function updateClient(
 }
 
 export async function deleteClient(id: string): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("client:delete", {
+    targetType: "CLIENT",
+    targetId: id,
+  });
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const result = await clientService.deleteClient(id);

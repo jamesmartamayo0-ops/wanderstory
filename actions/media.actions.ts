@@ -1,7 +1,7 @@
 "use server";
 
-import { auth } from "@/lib/auth";
-import { requireRole } from "@/lib/authz";
+import { requirePermission } from "@/lib/authz";
+import { auditFromRequest } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fileTypeFromBuffer } from "file-type";
@@ -21,6 +21,13 @@ import {
 import * as mediaService from "@/services/media.service";
 import type { ActionResult } from "@/types";
 
+function forbidden(authz: { ok: false; reason: "UNAUTHORIZED" | "FORBIDDEN" }): ActionResult {
+  return {
+    success: false,
+    error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
+  };
+}
+
 function revalidateJourneyPaths(journeyId: string) {
   revalidatePath("/admin/journeys");
   revalidatePath(`/admin/journeys/${journeyId}`);
@@ -29,9 +36,9 @@ function revalidateJourneyPaths(journeyId: string) {
 }
 
 export async function uploadMedia(formData: FormData): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("media:upload");
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const file = formData.get("file");
@@ -83,10 +90,20 @@ export async function uploadMedia(formData: FormData): Promise<ActionResult> {
     size: file.size,
     format: ext,
     type: getMediaType(actualMime),
-    uploaderId: session.user.id,
+    uploaderId: authz.actor.id,
   });
 
   if (result.success) {
+    const media = result.data as { id?: string };
+    if (media?.id) {
+      await auditFromRequest({
+        eventType: "MEDIA_UPLOADED",
+        actorEmail: authz.actor.email,
+        actorId: authz.actor.id,
+        targetType: "MEDIA",
+        targetId: media.id,
+      });
+    }
     revalidatePath("/admin/media");
     redirect("/admin/media");
   }
@@ -95,16 +112,23 @@ export async function uploadMedia(formData: FormData): Promise<ActionResult> {
 }
 
 export async function deleteMedia(id: string): Promise<ActionResult> {
-  const authz = await requireRole("SUPER_ADMIN");
+  const authz = await requirePermission("media:delete", {
+    targetType: "MEDIA",
+    targetId: id,
+  });
   if (!authz.ok) {
-    return {
-      success: false,
-      error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
-    };
+    return forbidden(authz);
   }
 
   const result = await mediaService.deleteMedia(id);
   if (result.success) {
+    await auditFromRequest({
+      eventType: "MEDIA_DELETED_PERMANENT",
+      actorEmail: authz.actor.email,
+      actorId: authz.actor.id,
+      targetType: "MEDIA",
+      targetId: id,
+    });
     revalidatePath("/admin/media");
   }
   return result;
@@ -114,9 +138,12 @@ export async function updateMedia(
   id: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("media:update", {
+    targetType: "MEDIA",
+    targetId: id,
+  });
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const parsed = updateMediaSchema.safeParse({
@@ -145,9 +172,9 @@ export async function uploadChapterMedia(
   chapterId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("media:upload");
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const file = formData.get("file");
@@ -201,10 +228,21 @@ export async function uploadChapterMedia(
     size: file.size,
     format: ext,
     type: getMediaType(actualMime),
-    uploaderId: session.user.id,
+    uploaderId: authz.actor.id,
   });
 
   if (result.success) {
+    const media = result.data as { id?: string };
+    if (media?.id) {
+      await auditFromRequest({
+        eventType: "MEDIA_UPLOADED",
+        actorEmail: authz.actor.email,
+        actorId: authz.actor.id,
+        targetType: "MEDIA",
+        targetId: media.id,
+        metadata: { journeyId, chapterId },
+      });
+    }
     revalidateJourneyPaths(journeyId);
   }
 
@@ -216,9 +254,9 @@ export async function attachMediaToChapter(
   chapterId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("media:update");
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const mediaIds = formData.getAll("mediaIds").map(String);
@@ -254,9 +292,9 @@ export async function removeChapterMedia(
   chapterId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("media:detach");
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const parsed = removeChapterMediaSchema.safeParse({
@@ -290,14 +328,6 @@ export async function deleteChapterMedia(
   chapterId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const authz = await requireRole("SUPER_ADMIN");
-  if (!authz.ok) {
-    return {
-      success: false,
-      error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
-    };
-  }
-
   const parsed = deleteChapterMediaSchema.safeParse({
     chapterId,
     mediaId: formData.get("mediaId"),
@@ -311,6 +341,14 @@ export async function deleteChapterMedia(
     };
   }
 
+  const authz = await requirePermission("media:delete", {
+    targetType: "MEDIA",
+    targetId: parsed.data.mediaId,
+  });
+  if (!authz.ok) {
+    return forbidden(authz);
+  }
+
   const result = await mediaService.deleteMediaPermanently(
     journeyId,
     parsed.data.chapterId,
@@ -318,6 +356,14 @@ export async function deleteChapterMedia(
   );
 
   if (result.success) {
+    await auditFromRequest({
+      eventType: "MEDIA_DELETED_PERMANENT",
+      actorEmail: authz.actor.email,
+      actorId: authz.actor.id,
+      targetType: "MEDIA",
+      targetId: parsed.data.mediaId,
+      metadata: { journeyId, chapterId },
+    });
     revalidateJourneyPaths(journeyId);
   }
 
@@ -329,9 +375,9 @@ export async function reorderChapterMedia(
   chapterId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("media:reorder");
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const mediaIds = formData.getAll("mediaIds").map(String);
@@ -367,9 +413,9 @@ export async function updateChapterMediaAltText(
   chapterId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "Unauthorized" };
+  const authz = await requirePermission("media:alt-text");
+  if (!authz.ok) {
+    return forbidden(authz);
   }
 
   const mediaId = formData.get("mediaId");
