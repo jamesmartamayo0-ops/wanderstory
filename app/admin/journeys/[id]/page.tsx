@@ -20,6 +20,12 @@ import {
   deleteChapter,
 } from "@/actions/chapter.actions";
 import {
+  createTimelineEvent,
+  updateTimelineEvent,
+  deleteTimelineEvent,
+  reorderTimelineEvents,
+} from "@/actions/timeline-event.actions";
+import {
   uploadChapterMedia,
   attachMediaToChapter,
   removeChapterMedia,
@@ -32,6 +38,7 @@ import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import MediaSelectField from "@/components/admin/MediaSelectField";
 import ChapterEditor from "@/components/admin/ChapterEditor";
+import TimelineEditor from "@/components/admin/TimelineEditor";
 
 const statusColors: Record<string, "draft" | "review" | "approved" | "published" | "archived" | "default"> = {
   DRAFT: "draft",
@@ -320,6 +327,17 @@ export default async function JourneyEditPage({
               deleteAction={deleteChapter.bind(null, id) as (formData: FormData) => void}
               libraryMedia={libraryMedia}
               mediaActions={chapterMediaActions}
+            />
+          </div>
+
+          <div className="rounded-lg border p-6">
+            <h2 className="mb-4 text-lg font-semibold">Timeline Events</h2>
+            <TimelineEditor
+              events={journey.timelineEvents}
+              createAction={createTimelineEvent.bind(null, id)}
+              updateAction={updateTimelineEvent.bind(null, id)}
+              deleteAction={deleteTimelineEvent.bind(null, id)}
+              reorderAction={reorderTimelineEvents.bind(null, id)}
             />
           </div>
         </div>

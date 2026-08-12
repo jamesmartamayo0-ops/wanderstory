@@ -22,6 +22,11 @@ export const PERMISSIONS = {
   "media:detach": ["SUPER_ADMIN", "EDITOR"],
   "media:reorder": ["SUPER_ADMIN", "EDITOR"],
 
+  "timeline:create": ["SUPER_ADMIN", "EDITOR"],
+  "timeline:update": ["SUPER_ADMIN", "EDITOR"],
+  "timeline:delete": ["SUPER_ADMIN"],
+  "timeline:reorder": ["SUPER_ADMIN", "EDITOR"],
+
   "client:create": ["SUPER_ADMIN", "EDITOR"],
   "client:update": ["SUPER_ADMIN", "EDITOR"],
   "client:delete": ["SUPER_ADMIN"],

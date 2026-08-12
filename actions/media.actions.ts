@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/authz";
 import { auditFromRequest } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { revalidateJourneyPaths } from "@/lib/revalidate";
 import { fileTypeFromBuffer } from "file-type";
 import {
   getAllowedMimeTypes,
@@ -26,13 +27,6 @@ function forbidden(authz: { ok: false; reason: "UNAUTHORIZED" | "FORBIDDEN" }): 
     success: false,
     error: authz.reason === "FORBIDDEN" ? "Forbidden" : "Unauthorized",
   };
-}
-
-function revalidateJourneyPaths(journeyId: string) {
-  revalidatePath("/admin/journeys");
-  revalidatePath(`/admin/journeys/${journeyId}`);
-  revalidatePath("/journeys");
-  revalidatePath("/journeys/[slug]", "page");
 }
 
 export async function uploadMedia(formData: FormData): Promise<ActionResult> {
