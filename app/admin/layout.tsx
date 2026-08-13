@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
+import { logoutAction } from "@/actions/auth.actions";
 
 export default async function AdminLayout({
   children,
@@ -47,6 +48,13 @@ export default async function AdminLayout({
               <Link href="/admin/categories" className="block hover:underline">
                 Categories
               </Link>
+            </li>
+            <li>
+              <form action={logoutAction}>
+                <button type="submit" className="block hover:underline">
+                  Log out
+                </button>
+              </form>
             </li>
           </ul>
         </nav>

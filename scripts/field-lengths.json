@@ -1,0 +1,86 @@
+{
+  "ranAt": "2026-08-12T15:36:39.071Z",
+  "fields": [
+    {
+      "table": "Chapter",
+      "column": "content",
+      "rows": 9,
+      "nonNull": 9,
+      "min": 188,
+      "max": 480,
+      "avg": 380
+    },
+    {
+      "table": "Journey",
+      "column": "introduction",
+      "rows": 2,
+      "nonNull": 2,
+      "min": 160,
+      "max": 554,
+      "avg": 357
+    },
+    {
+      "table": "Journey",
+      "column": "seoDescription",
+      "rows": 2,
+      "nonNull": 0,
+      "min": null,
+      "max": null,
+      "avg": null
+    },
+    {
+      "table": "TimelineEvent",
+      "column": "description",
+      "rows": 6,
+      "nonNull": 6,
+      "min": 97,
+      "max": 155,
+      "avg": 129
+    },
+    {
+      "table": "Quote",
+      "column": "text",
+      "rows": 0,
+      "nonNull": 0,
+      "min": null,
+      "max": null,
+      "avg": null
+    },
+    {
+      "table": "Client",
+      "column": "notes",
+      "rows": 9,
+      "nonNull": 8,
+      "min": 0,
+      "max": 12,
+      "avg": 2
+    },
+    {
+      "table": "PublicationConsent",
+      "column": "notes",
+      "rows": 1,
+      "nonNull": 1,
+      "min": 35,
+      "max": 35,
+      "avg": 35
+    },
+    {
+      "table": "Destination",
+      "column": "description",
+      "rows": 17,
+      "nonNull": 15,
+      "min": 0,
+      "max": 352,
+      "avg": 79
+    },
+    {
+      "table": "Category",
+      "column": "description",
+      "rows": 8,
+      "nonNull": 8,
+      "min": 0,
+      "max": 136,
+      "avg": 30
+    }
+  ]
+}

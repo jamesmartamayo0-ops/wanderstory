@@ -4,7 +4,7 @@ export const createDestinationSchema = z.object({
   name: z.string().min(1, "Name is required"),
   country: z.string().min(1, "Country is required"),
   region: z.string().optional().or(z.literal("")),
-  description: z.string().optional().or(z.literal("")),
+  description: z.string().max(5000).optional().or(z.literal("")),
   featured: z.boolean().optional(),
   published: z.boolean().optional(),
 });
@@ -13,7 +13,7 @@ export const updateDestinationSchema = z.object({
   name: z.string().min(1).optional(),
   country: z.string().min(1).optional(),
   region: z.string().optional().or(z.literal("")),
-  description: z.string().optional().or(z.literal("")),
+  description: z.string().max(5000).optional().or(z.literal("")),
   heroMediaId: z.string().optional().or(z.literal("")),
   featured: z.boolean().optional(),
   published: z.boolean().optional(),

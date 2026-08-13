@@ -725,3 +725,87 @@ Sequenced so each milestone produces something runnable/testable, and later mile
 ---
 
 *This document is the approved foundation for Phase 1. Next step, when you're ready: begin Milestone 0 (project scaffolding).*
+
+---
+
+## Phase 4.3 — Security Hardening (auth, session, and login-path defense)
+
+Implemented post-milestone as the Phase 4.3 hardening pass. Scope: login-path brute-force defense,
+logout, audit completeness on the login path, header verification, and field-length caps. R8
+(dead-code cleanup) is explicitly out of scope by review decision.
+
+### Authentication & session architecture
+
+- **Provider**: NextAuth v5 (beta) credentials provider — `Credentials` in `lib/auth.ts`, base
+  configuration in `lib/auth.config.ts`. Route handlers exported at
+  `app/api/auth/[...nextauth]/route.ts`; middleware protects `/admin/:path*` (login page exempt).
+- **Session strategy**: JWT only (no server-side session store). JWT claims carry `id` and `role`;
+  the encrypted/signed cookie `authjs.session-token` is the only client-visible credential.
+- **Session configuration** (`auth.config.ts`):
+  - `maxAge: 8 * 60 * 60` — sessions expire 8 hours after issue/last refresh.
+  - `updateAge: 60 * 60` — token refresh grace; the JWT is re-issued no more often than hourly.
+  - Cookie: `httpOnly: true`, `sameSite: "lax"`, `secure: true` in production, `priority: "high"`.
+- **Logout**: explicit `logoutAction` server action (`actions/auth.actions.ts`) calling
+  `signOut({ redirect: false })`; the session cookie is invalidated and the admin is redirected to
+  `/admin/login`. Every logout emits a `LOGOUT` audit event.
+
+### Login-path defense-in-depth
+
+- **Primary — email-keyed rate limiting** (always active): each attempt increments a fixed-window
+  counter keyed by normalized email (`RateLimitEntry`). With `LOGIN_RATE_LIMIT=10`, attempts 1–10
+  are permitted and the 11th is blocked. A **successful authentication resets only that email's
+  key**; IP keys and unrelated keys are never touched.
+- **Secondary — IP-keyed rate limiting**: only active when `TRUST_PROXY=1`. Forwarded headers
+  (`x-forwarded-for`, `x-real-ip`) are **never trusted** otherwise; no IP key is derived. See
+  `lib/security.ts` `getTrustedClientIp`.
+- **Fail closed**: if the rate-limit database check itself fails, the login is denied rather than
+  allowed (no bypass on infrastructure failure).
+- **Timing equalization**: unknown-email attempts run an argon2 verify against a generated dummy
+  hash instead of returning early, so user enumeration by response timing is not practical.
+- **Attempt recording** (`LoginAttempt` rows): every attempt — success or failure — is recorded
+  with email, outcome, IP (when trusted) and user agent. Retention:
+  `LOGIN_ATTEMPT_RETENTION_DAYS` (default 90).
+- **Audit semantics**: `LOGIN_SUCCESS` on every successful authentication (NextAuth `signIn` event).
+  `LOGIN_FAILED` is emitted **only when the rate-limit threshold is crossed / a lockout occurs** —
+  ordinary failed attempts are represented by `LoginAttempt` rows, not `LOGIN_FAILED` audit events.
+
+### Field-length caps
+
+Zod validation caps are applied to long-form fields; caps are derived from a database audit of
+observed maximum lengths plus headroom per field semantics (see the Phase 4.3 build report for the
+per-field observed-max → rationale → cap table). Existing content that already fits remains
+editable; caps are validation-layer only (no database constraints).
+
+Measured on the development database (`scripts/audit-field-lengths.mts` → `scripts/field-lengths.json`):
+
+| Field | Observed max | Rationale | Cap |
+|---|---|---|---|
+| `chapter.content` | 480 | Long-form prose body; generous ceiling for legitimate chapters (~8k words) | 50,000 |
+| `journey.introduction` | 554 | Essay-style intro; generous ceiling (~3k words) | 20,000 |
+| `timelineEvent.description` | 155 | Short per-event summary text | 2,000 |
+| `destination.description` | 352 | Marketing copy about a destination | 5,000 |
+| `category.description` | 136 | Taxonomy one-liner blurbs | 5,000 |
+| `client.notes` | 12 | Free-form admin annotation field | 10,000 |
+| `journey.seoDescription` | — (no data) | No write path exists | no cap |
+| `quote.text` | — (no rows) | No write path exists | no cap |
+| `publicationConsent.notes` | 35 (1 row) | No write path exists | no cap |
+
+Replay verification: the longest existing row per capped field was re-saved through its update
+action with identical content; all succeeded (see `scripts/verify-4.3.mts` R7 section).
+
+### Environment variables (Phase 4.3 additions)
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `LOGIN_RATE_LIMIT` | `10` | Failures permitted per fixed window before the next attempt is blocked |
+| `LOGIN_RATE_WINDOW_SECONDS` | `900` | Fixed rate-limit window length (seconds) |
+| `TRUST_PROXY` | off (`"0"`/unset) | Enables trusting `x-forwarded-for`/`x-real-ip` for IP-derived keys. Only for confirmed trusted-proxy deployment topologies |
+
+### Security residuals (documented, out of scope for 4.3)
+
+- CSP `script-src 'unsafe-inline'` (required for Next.js inline bootstrap; `'unsafe-eval'`
+  development-only) — nonce-based CSP is a future item.
+- HSTS is emitted with `max-age=63072000; includeSubDomains`; **preload-list submission is
+  explicitly out of scope**.
+- `seoDescription`, `quote.text`, `publicationConsent.notes` have no write path today and receive
+  no caps; re-audit if a write path is added.

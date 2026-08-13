@@ -11,14 +11,14 @@ const dateStringToDate = z.preprocess(
 export const createTimelineEventSchema = z.object({
   date: dateStringToDate,
   title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
+  description: z.string().max(2000).optional(),
 });
 
 export const updateTimelineEventSchema = z.object({
   timelineEventId: z.string().min(1),
   date: dateStringToDate,
   title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
+  description: z.string().max(2000).optional(),
 });
 
 export const deleteTimelineEventSchema = z.object({
