@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import DestinationDirectoryCard from "./DestinationDirectoryCard";
 import type { DestinationCardView } from "@/lib/adapters/destination.adapter";
@@ -56,9 +55,7 @@ export default function DestinationsContent({
     >
       {destinations.map((dest) => (
         <motion.div key={dest.id} variants={item}>
-          <Link href={`/destinations/${dest.slug}`} className="block">
-            <DestinationDirectoryCard destination={dest} />
-          </Link>
+          <DestinationDirectoryCard destination={dest} />
         </motion.div>
       ))}
     </motion.div>
