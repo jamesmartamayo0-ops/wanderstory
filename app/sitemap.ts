@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getPublicJourneySlugs } from "@/services/journey.service";
 import { getPublicDestinationSlugs } from "@/services/destination.service";
+import { CONTINENTS } from "@/data/continents";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
@@ -50,6 +51,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getPublicDestinationSlugs(),
   ]);
 
+  const continentRoutes: MetadataRoute.Sitemap = CONTINENTS.map(
+    (continent) => ({
+      url: `${baseUrl}/destinations/continent/${continent.slug}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    })
+  );
+
   const journeyRoutes: MetadataRoute.Sitemap = journeys.map((journey) => ({
     url: `${baseUrl}/journeys/${journey.slug}`,
     lastModified: journey.updatedAt,
@@ -66,5 +76,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
   );
 
-  return [...staticRoutes, ...journeyRoutes, ...destinationRoutes];
+  return [...staticRoutes, ...continentRoutes, ...journeyRoutes, ...destinationRoutes];
 }

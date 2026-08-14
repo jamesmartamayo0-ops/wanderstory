@@ -13,6 +13,7 @@ import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import MediaSelectField from "@/components/admin/MediaSelectField";
+import { CONTINENTS } from "@/data/continents";
 
 export default async function AdminDestinationsPage({
   searchParams,
@@ -74,6 +75,7 @@ async function DestinationList({
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Name</th>
                 <th className="px-4 py-3 text-left font-medium">Country</th>
+                <th className="px-4 py-3 text-left font-medium">Continent</th>
                 <th className="px-4 py-3 text-left font-medium">Region</th>
                 <th className="px-4 py-3 text-center font-medium">Status</th>
                 <th className="px-4 py-3 text-center font-medium">Featured</th>
@@ -87,6 +89,9 @@ async function DestinationList({
                   <td className="px-4 py-3">{destination.name}</td>
                   <td className="px-4 py-3 text-neutral-500">
                     {destination.country}
+                  </td>
+                  <td className="px-4 py-3 text-neutral-500">
+                    {destination.continent || "—"}
                   </td>
                   <td className="px-4 py-3 text-neutral-500">
                     {destination.region || "—"}
@@ -182,6 +187,36 @@ async function CreateDestinationForm() {
               name="country"
               type="text"
               required
+              className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="continent" className="block text-sm font-medium">
+              Continent
+            </label>
+            <select
+              id="continent"
+              name="continent"
+              className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            >
+              <option value="">—</option>
+              {CONTINENTS.map((continent) => (
+                <option key={continent.slug} value={continent.slug}>
+                  {continent.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="featuredPlace" className="block text-sm font-medium">
+              Featured Place
+            </label>
+            <input
+              id="featuredPlace"
+              name="featuredPlace"
+              type="text"
               className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
             />
           </div>
@@ -294,6 +329,38 @@ async function EditDestinationForm({
               type="text"
               required
               defaultValue={destination.country}
+              className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="continent" className="block text-sm font-medium">
+              Continent
+            </label>
+            <select
+              id="continent"
+              name="continent"
+              defaultValue={destination.continent ?? ""}
+              className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            >
+              <option value="">—</option>
+              {CONTINENTS.map((continent) => (
+                <option key={continent.slug} value={continent.slug}>
+                  {continent.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="featuredPlace" className="block text-sm font-medium">
+              Featured Place
+            </label>
+            <input
+              id="featuredPlace"
+              name="featuredPlace"
+              type="text"
+              defaultValue={destination.featuredPlace ?? ""}
               className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
             />
           </div>

@@ -116,6 +116,8 @@ export async function getPublicDestinationBySlug(slug: string) {
         name: true,
         slug: true,
         country: true,
+        continent: true,
+        featuredPlace: true,
         region: true,
         description: true,
         heroMedia: {
@@ -125,6 +127,10 @@ export async function getPublicDestinationBySlug(slug: string) {
             blurDataUrl: true,
             width: true,
             height: true,
+            sourceUrl: true,
+            sourceAuthor: true,
+            licenseName: true,
+            licenseUrl: true,
           },
         },
         journeys: {
@@ -201,6 +207,58 @@ export async function getPublicDestinations() {
         },
       },
     });
+  } catch {
+    return [];
+  }
+}
+
+const HERO_MEDIA_SELECT = {
+  url: true,
+  altText: true,
+  sourceUrl: true,
+  sourceAuthor: true,
+  licenseName: true,
+  licenseUrl: true,
+} as const;
+
+export async function getPublicDestinationDirectory() {
+  try {
+    return prisma.destination.findMany({
+      where: { published: true },
+      orderBy: { country: "asc" },
+      include: { heroMedia: { select: HERO_MEDIA_SELECT } },
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function getPublicDestinationsByContinent(continent: string) {
+  try {
+    return prisma.destination.findMany({
+      where: { published: true, continent },
+      orderBy: { country: "asc" },
+      include: { heroMedia: { select: HERO_MEDIA_SELECT } },
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function getPublicContinents() {
+  try {
+    const grouped = await prisma.destination.groupBy({
+      by: ["continent"],
+      where: { published: true, continent: { not: null } },
+      _count: { _all: true },
+    });
+
+    return grouped
+      .filter((group) => group.continent !== null)
+      .map((group) => ({
+        continent: group.continent as string,
+        count: group._count._all,
+      }));
   } catch {
     return [];
   }

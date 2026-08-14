@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { PublicDestinationDetail } from "@/lib/adapters/destination-detail.adapter";
 import HeroAnimationWrapper from "./HeroAnimationWrapper";
+import PhotoCredit from "../PhotoCredit";
 
 interface HeroSectionProps {
   destination: PublicDestinationDetail;
@@ -35,6 +36,12 @@ export default function HeroSection({ destination }: HeroSectionProps) {
         country={country}
         region={region}
       />
+
+      {heroMedia?.credit ? (
+        <div className="absolute right-4 bottom-4 z-10">
+          <PhotoCredit credit={heroMedia.credit} variant="overlay" />
+        </div>
+      ) : null}
     </section>
   );
 }

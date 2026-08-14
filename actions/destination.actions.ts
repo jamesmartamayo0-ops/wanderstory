@@ -30,6 +30,8 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
     const parsed = updateDestinationSchema.safeParse({
       name: formData.get("name"),
       country: formData.get("country"),
+      continent: formData.get("continent"),
+      featuredPlace: formData.get("featuredPlace"),
       region: formData.get("region"),
       description: formData.get("description"),
       heroMediaId: formData.get("heroMediaId"),
@@ -58,6 +60,8 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
   const parsed = createDestinationSchema.safeParse({
     name: formData.get("name"),
     country: formData.get("country"),
+    continent: formData.get("continent"),
+    featuredPlace: formData.get("featuredPlace"),
     region: formData.get("region"),
     description: formData.get("description"),
     featured: formData.get("featured") === "true",

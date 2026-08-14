@@ -46,6 +46,12 @@ export default async function DestinationPage({
     "@type": "Place",
     name: destination.name,
     description: destination.description?.slice(0, 160),
+    ...(destination.countryCode && {
+      address: {
+        "@type": "PostalAddress",
+        addressCountry: destination.countryCode,
+      },
+    }),
     ...(destination.heroMedia && {
       image: destination.heroMedia.url,
     }),

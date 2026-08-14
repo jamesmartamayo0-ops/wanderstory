@@ -1,10 +1,25 @@
-import { getPublicDestinations } from "@/services/destination.service";
-import { toPublicDestination } from "@/lib/adapters/destination.adapter";
+import { getPublicDestinationDirectory } from "@/services/destination.service";
+import { toDestinationCard } from "@/lib/adapters/destination.adapter";
+import { CONTINENTS } from "@/data/continents";
+import ContinentNav from "./ContinentNav";
 import DestinationsContent from "./DestinationsContent";
 
 export default async function Destinations() {
-  const raw = await getPublicDestinations();
-  const destinations = raw.map(toPublicDestination);
+  const raw = await getPublicDestinationDirectory();
+  const destinations = raw.map(toDestinationCard);
+
+  const groups = new Map<string, typeof destinations>();
+  const uncategorized: typeof destinations = [];
+
+  for (const destination of destinations) {
+    if (destination.continent) {
+      const group = groups.get(destination.continent) ?? [];
+      group.push(destination);
+      groups.set(destination.continent, group);
+    } else {
+      uncategorized.push(destination);
+    }
+  }
 
   return (
     <section
@@ -22,12 +37,56 @@ export default async function Destinations() {
           </h1>
 
           <p className="mx-auto mt-3 max-w-xl font-[family-name:var(--font-body)] text-base text-neutral-500">
-            Discover places that stir the soul — from misty highlands to
-            sun-scorched deserts, every destination has a story waiting for you.
+            One curated place per country — from misty highlands to
+            sun-scorched deserts, every destination has a story waiting for
+            you.
           </p>
+
+          <div className="mt-8">
+            <ContinentNav />
+          </div>
         </div>
 
-        <DestinationsContent destinations={destinations} />
+        {destinations.length === 0 ? (
+          <DestinationsContent destinations={destinations} />
+        ) : (
+          <div className="space-y-16">
+            {CONTINENTS.map((continent) => {
+              const group = groups.get(continent.slug);
+              if (!group) return null;
+
+              return (
+                <section key={continent.slug} aria-label={continent.name}>
+                  <div className="mb-8 text-center">
+                    <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--color-ink-950)]">
+                      {continent.name}
+                    </h2>
+                    <p className="mt-1 font-[family-name:var(--font-body)] text-sm text-neutral-500">
+                      {continent.tagline} · {group.length}{" "}
+                      {group.length === 1 ? "country" : "countries"}
+                    </p>
+                  </div>
+                  <DestinationsContent destinations={group} />
+                </section>
+              );
+            })}
+
+            {uncategorized.length > 0 ? (
+              <section aria-label="More places">
+                <div className="mb-8 text-center">
+                  <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--color-ink-950)]">
+                    More Places
+                  </h2>
+                  <p className="mt-1 font-[family-name:var(--font-body)] text-sm text-neutral-500">
+                    {uncategorized.length}{" "}
+                    {uncategorized.length === 1 ? "destination" : "destinations"}
+                  </p>
+                </div>
+                <DestinationsContent destinations={uncategorized} />
+              </section>
+            ) : null}
+          </div>
+        )}
       </div>
     </section>
   );

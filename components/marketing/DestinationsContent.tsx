@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
-import DestinationCard from "./DestinationCard";
-import type { PublicDestination } from "@/lib/adapters/destination.adapter";
+import DestinationDirectoryCard from "./DestinationDirectoryCard";
+import type { DestinationCardView } from "@/lib/adapters/destination.adapter";
 
 interface DestinationsContentProps {
-  destinations: PublicDestination[];
+  destinations: DestinationCardView[];
 }
 
 export default function DestinationsContent({
@@ -18,8 +18,8 @@ export default function DestinationsContent({
     hidden: {},
     visible: {
       transition: {
-        staggerChildren: shouldReduceMotion ? 0 : 0.12,
-        delayChildren: shouldReduceMotion ? 0 : 0.15,
+        staggerChildren: shouldReduceMotion ? 0 : 0.08,
+        delayChildren: shouldReduceMotion ? 0 : 0.1,
       },
     },
   };
@@ -56,11 +56,8 @@ export default function DestinationsContent({
     >
       {destinations.map((dest) => (
         <motion.div key={dest.id} variants={item}>
-          <Link
-            href={`/destinations/${dest.slug}`}
-            className="block"
-          >
-            <DestinationCard destination={dest} />
+          <Link href={`/destinations/${dest.slug}`} className="block">
+            <DestinationDirectoryCard destination={dest} />
           </Link>
         </motion.div>
       ))}

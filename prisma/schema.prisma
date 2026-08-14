@@ -196,21 +196,24 @@ model Quote {
 }
 
 model Destination {
-  id          String    @id @default(cuid())
-  slug        String    @unique
-  name        String
-  country     String
-  region      String?
-  description String?   @db.Text
-  featured    Boolean   @default(false)
-  published   Boolean   @default(false)
-  heroMedia   Media?    @relation(fields: [heroMediaId], references: [id])
-  heroMediaId String?   @unique
-  journeys    Journey[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  name          String
+  country       String
+  continent     String?
+  featuredPlace String?
+  region        String?
+  description   String?   @db.Text
+  featured      Boolean   @default(false)
+  published     Boolean   @default(false)
+  heroMedia     Media?    @relation(fields: [heroMediaId], references: [id])
+  heroMediaId   String?   @unique
+  journeys      Journey[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([featured, published])
+  @@index([continent, published])
 }
 
 model Category {
@@ -253,6 +256,11 @@ model Media {
   role    MediaRole
   altText String?
   order   Int       @default(0)
+
+  sourceUrl    String?
+  sourceAuthor String?
+  licenseName  String?
+  licenseUrl   String?
 
   uploader   Admin?  @relation(fields: [uploaderId], references: [id])
   uploaderId String?
