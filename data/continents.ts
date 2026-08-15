@@ -29,6 +29,11 @@ export const CONTINENTS = [
     name: "Oceania",
     tagline: "Fjords, reefs, and island adventures",
   },
+  {
+    slug: "antarctica",
+    name: "Antarctica",
+    tagline: "The last frontier of silence and ice",
+  },
 ] as const;
 
 export type ContinentSlug = (typeof CONTINENTS)[number]["slug"];

@@ -9,6 +9,7 @@ export interface HeroProps {
   ctaHref?: string;
   imageSrc?: string;
   imageAlt?: string;
+  videoSrc?: string;
 }
 
 // TEMP placeholder strategy — Phase 1.2 only.
@@ -26,6 +27,7 @@ const DEFAULT_HERO: Required<HeroProps> = {
   ctaHref: "#explore",
   imageSrc: "/hero/placeholder-hero.jpg",
   imageAlt: "Sweeping coastal cliffside at golden hour",
+  videoSrc: "/hero/hero-ambient.mp4",
 };
 
 export default function Hero(props: HeroProps) {

@@ -12,6 +12,7 @@ export const createTimelineEventSchema = z.object({
   date: dateStringToDate,
   title: z.string().min(1, "Title is required"),
   description: z.string().max(2000).optional(),
+  location: z.string().max(200).optional().or(z.literal("")),
 });
 
 export const updateTimelineEventSchema = z.object({
@@ -19,6 +20,7 @@ export const updateTimelineEventSchema = z.object({
   date: dateStringToDate,
   title: z.string().min(1, "Title is required"),
   description: z.string().max(2000).optional(),
+  location: z.string().max(200).optional().or(z.literal("")),
 });
 
 export const deleteTimelineEventSchema = z.object({

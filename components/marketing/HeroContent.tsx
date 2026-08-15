@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
@@ -17,8 +18,20 @@ export default function HeroContent({
   ctaHref,
   imageSrc,
   imageAlt,
+  videoSrc,
 }: HeroContentProps) {
   const shouldReduceMotion = useReducedMotion();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const nav = navigator as Navigator & {
+      connection?: { saveData?: boolean };
+    };
+    if (nav.connection?.saveData === true && videoRef.current) {
+      videoRef.current.removeAttribute("src");
+      videoRef.current.load();
+    }
+  }, []);
 
   const container: Variants = {
     hidden: {},
@@ -48,6 +61,22 @@ export default function HeroContent({
       className="relative flex min-h-screen items-end overflow-hidden pt-24 pb-20"
     >
       <div className="absolute inset-0">
+        <video
+          ref={videoRef}
+          className="hero-video absolute inset-0 h-full w-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster={imageSrc}
+          aria-hidden="true"
+          tabIndex={-1}
+          disablePictureInPicture
+        >
+          <source src={videoSrc} type="video/mp4" />
+        </video>
+
         <motion.div
           className="relative h-full w-full"
           initial={{ scale: 1 }}

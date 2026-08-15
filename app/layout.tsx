@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Sora, Inter, Poppins } from "next/font/google";
 import "./globals.css";
+import ThemeScript from "./theme-script";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -27,7 +28,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body
         className={`${sora.variable} ${inter.variable} ${poppins.variable} antialiased`}
       >

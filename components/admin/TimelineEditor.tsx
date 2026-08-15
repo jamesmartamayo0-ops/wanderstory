@@ -13,6 +13,7 @@ type TimelineEventItem = {
   date: string | Date;
   title: string;
   description: string | null;
+  location: string | null;
   order: number;
 };
 
@@ -128,6 +129,16 @@ export default function TimelineEditor({
               error={createState.fieldErrors?.title?.[0]}
             />
             <Textarea label="Description" name="description" rows={3} />
+            <div>
+              <Input
+                label="Where this happens"
+                name="location"
+                placeholder="e.g. Boracay, White Beach"
+              />
+              <p className="mt-1 text-xs text-neutral-500">
+                Optional — the specific place this story is about (e.g. Boracay, White Beach).
+              </p>
+            </div>
             <FormErrors state={createState} />
             <Button type="submit" variant="primary" size="md" disabled={createPending}>
               {createPending ? "Saving..." : "Save Event"}
@@ -160,6 +171,11 @@ export default function TimelineEditor({
                         {formatDate(event.date)}
                       </p>
                       <h3 className="mt-1 text-sm font-medium">{event.title}</h3>
+                      {event.location && (
+                        <p className="mt-0.5 text-xs text-neutral-500">
+                          {event.location}
+                        </p>
+                      )}
                       {event.description && (
                         <p className="mt-1 line-clamp-3 text-sm text-neutral-500">
                           {event.description}
@@ -233,6 +249,7 @@ function EditForm({
   const [date, setDate] = useState(toDateInputValue(event.date));
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description ?? "");
+  const [location, setLocation] = useState(event.location ?? "");
 
   const [state, formAction, pending] = useActionState(
     (_prevState: ActionResult, formData: FormData) => updateAction(formData),
@@ -266,6 +283,18 @@ function EditForm({
         onChange={(e) => setDescription(e.target.value)}
         rows={3}
       />
+      <div>
+        <Input
+          label="Where this happens"
+          name="location"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="e.g. Boracay, White Beach"
+        />
+        <p className="mt-1 text-xs text-neutral-500">
+          Optional — the specific place this story is about (e.g. Boracay, White Beach).
+        </p>
+      </div>
       <FormErrors state={state} />
       <div className="flex gap-2">
         <Button type="submit" variant="primary" size="sm" disabled={pending}>

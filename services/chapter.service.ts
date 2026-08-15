@@ -26,7 +26,7 @@ export async function getChaptersByJourney(journeyId: string) {
 
 export async function createChapter(
   journeyId: string,
-  data: { title: string; content: string }
+  data: { title: string; content: string; location?: string | null }
 ): Promise<ActionResult> {
   try {
     const maxOrder = await prisma.chapter.aggregate({
@@ -40,6 +40,7 @@ export async function createChapter(
         journeyId,
         title: data.title,
         content: data.content,
+        location: data.location === "" ? null : data.location ?? null,
         order: nextOrder,
       },
     });
@@ -53,12 +54,16 @@ export async function createChapter(
 export async function updateChapter(
   journeyId: string,
   chapterId: string,
-  data: { title: string; content: string }
+  data: { title: string; content: string; location?: string | null }
 ): Promise<ActionResult> {
   try {
     const result = await prisma.chapter.updateMany({
       where: { id: chapterId, journeyId },
-      data: { title: data.title, content: data.content },
+      data: {
+        title: data.title,
+        content: data.content,
+        location: data.location === "" ? null : data.location ?? null,
+      },
     });
 
     if (result.count === 0) {

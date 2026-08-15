@@ -56,6 +56,7 @@ export default async function JourneyPage({ params }: JourneyPageProps) {
     "@type": "Article",
     headline: journey.title,
     author: journey.travelerName,
+    contentLocation: journey.location,
     datePublished: journey.publishedAt,
     description: journey.seoDescription ?? journey.introduction.slice(0, 160),
     ...(journey.coverMedia && {

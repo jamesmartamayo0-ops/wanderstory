@@ -53,6 +53,7 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
       revalidatePath("/destinations");
       revalidatePath("/destinations/[slug]");
       revalidatePath("/sitemap.xml");
+      revalidatePath("/destinations/search-index");
     }
     return result;
   }
@@ -82,6 +83,7 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
     revalidatePath("/destinations");
     revalidatePath("/destinations/[slug]");
     revalidatePath("/sitemap.xml");
+      revalidatePath("/destinations/search-index");
   }
   return result;
 }
@@ -98,6 +100,7 @@ export async function deleteDestination(id: string): Promise<ActionResult> {
     revalidatePath("/destinations");
     revalidatePath("/destinations/[slug]");
     revalidatePath("/sitemap.xml");
+      revalidatePath("/destinations/search-index");
   }
   return result;
 }
@@ -120,6 +123,7 @@ export async function updateDestinationPublished(
     revalidatePath("/destinations");
     revalidatePath("/destinations/[slug]");
     revalidatePath("/sitemap.xml");
+      revalidatePath("/destinations/search-index");
   }
   return result;
 }

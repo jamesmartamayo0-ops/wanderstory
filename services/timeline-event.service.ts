@@ -24,7 +24,7 @@ export async function getTimelineEventsByJourney(journeyId: string) {
 
 export async function createTimelineEvent(
   journeyId: string,
-  data: { date: Date; title: string; description?: string }
+  data: { date: Date; title: string; description?: string; location?: string | null }
 ): Promise<ActionResult> {
   try {
     const journey = await prisma.journey.findFirst({
@@ -48,6 +48,7 @@ export async function createTimelineEvent(
         date: data.date,
         title: data.title,
         description: data.description || null,
+        location: data.location === "" ? null : data.location ?? null,
         order: nextOrder,
       },
     });
@@ -61,7 +62,7 @@ export async function createTimelineEvent(
 export async function updateTimelineEvent(
   journeyId: string,
   eventId: string,
-  data: { date: Date; title: string; description?: string }
+  data: { date: Date; title: string; description?: string; location?: string | null }
 ): Promise<ActionResult> {
   try {
     const result = await prisma.timelineEvent.updateMany({
@@ -70,6 +71,7 @@ export async function updateTimelineEvent(
         date: data.date,
         title: data.title,
         description: data.description || null,
+        location: data.location === "" ? null : data.location ?? null,
       },
     });
 

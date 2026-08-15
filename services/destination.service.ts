@@ -146,6 +146,7 @@ export async function getPublicDestinationBySlug(slug: string) {
             title: true,
             travelerName: true,
             introduction: true,
+            location: true,
             publishedAt: true,
             destination: {
               select: { name: true, country: true },

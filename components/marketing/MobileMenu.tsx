@@ -64,7 +64,7 @@ export default function MobileMenu({
       {isOpen && (
         <>
           <motion.div
-            className="fixed inset-0 z-[60] bg-neutral-950/40 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm lg:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -109,13 +109,6 @@ export default function MobileMenu({
             </nav>
 
             <div className="mt-auto flex flex-col gap-3 pt-6">
-              <Link
-                href="/admin/login"
-                onClick={onClose}
-                className="font-[family-name:var(--font-body)] text-center text-sm font-medium text-neutral-600"
-              >
-                Login
-              </Link>
               <Link
                 href="#explore"
                 onClick={onClose}

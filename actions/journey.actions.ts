@@ -36,6 +36,7 @@ export async function createJourney(formData: FormData): Promise<ActionResult> {
     clientId: formData.get("clientId"),
     destinationId: formData.get("destinationId"),
     categoryIds: categoryIdsRaw.length ? categoryIdsRaw : [],
+    location: formData.get("location"),
   });
 
   if (!parsed.success) {
@@ -91,6 +92,7 @@ export async function updateJourney(
     categoryIds: categoryIdsRaw.length ? categoryIdsRaw : undefined,
     coverMediaId: formData.get("coverMediaId"),
     ogImageId: formData.get("ogImageId"),
+    location: formData.get("location"),
   });
 
   if (!parsed.success) {

@@ -30,6 +30,7 @@ export async function createChapter(
   const parsed = createChapterSchema.safeParse({
     title: formData.get("title"),
     content: formData.get("content"),
+    location: formData.get("location"),
   });
 
   if (!parsed.success) {
@@ -61,6 +62,7 @@ export async function updateChapter(
     chapterId: formData.get("chapterId"),
     title: formData.get("title"),
     content: formData.get("content"),
+    location: formData.get("location"),
   });
 
   if (!parsed.success) {
@@ -74,7 +76,11 @@ export async function updateChapter(
   const result = await chapterService.updateChapter(
     journeyId,
     parsed.data.chapterId,
-    { title: parsed.data.title, content: parsed.data.content }
+    {
+      title: parsed.data.title,
+      content: parsed.data.content,
+      location: parsed.data.location,
+    }
   );
   if (result.success) {
     revalidatePath("/admin/journeys");

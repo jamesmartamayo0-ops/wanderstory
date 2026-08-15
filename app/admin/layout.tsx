@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { logoutAction } from "@/actions/auth.actions";
+import AdminThemeLock from "@/components/admin/AdminThemeLock";
 
 export default async function AdminLayout({
   children,
@@ -14,7 +15,9 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
+    <>
+      <AdminThemeLock />
+      <div className="flex min-h-screen">
       <aside className="w-64 border-r bg-neutral-50 p-6">
         <nav className="space-y-4">
           <div className="text-lg font-bold">WanderStory</div>
@@ -60,6 +63,7 @@ export default async function AdminLayout({
         </nav>
       </aside>
       <main className="flex-1 p-6">{children}</main>
-    </div>
+      </div>
+    </>
   );
 }

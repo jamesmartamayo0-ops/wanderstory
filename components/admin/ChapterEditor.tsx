@@ -16,6 +16,7 @@ type Chapter = {
   id: string;
   title: string;
   content: string;
+  location: string | null;
   order: number;
   media: ChapterMediaItem[];
 };
@@ -61,6 +62,16 @@ export default function ChapterEditor({
           <form action={createAction} className="space-y-3">
             <Input label="Title" name="title" required />
             <Textarea label="Content" name="content" rows={4} required />
+            <div>
+              <Input
+                label="Where this happens"
+                name="location"
+                placeholder="e.g. Boracay, White Beach"
+              />
+              <p className="mt-1 text-xs text-neutral-500">
+                Optional — the specific place this story is about (e.g. Boracay, White Beach).
+              </p>
+            </div>
             <Button type="submit" variant="primary" size="md">
               Save Chapter
             </Button>
@@ -88,6 +99,11 @@ export default function ChapterEditor({
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-sm font-medium">{chapter.title}</h3>
+                    {chapter.location && (
+                      <p className="mt-0.5 text-xs text-neutral-500">
+                        {chapter.location}
+                      </p>
+                    )}
                     <p className="mt-1 line-clamp-3 text-sm text-neutral-500">
                       {chapter.content}
                     </p>
@@ -141,6 +157,7 @@ function EditForm({
 }) {
   const [title, setTitle] = useState(chapter.title);
   const [content, setContent] = useState(chapter.content);
+  const [location, setLocation] = useState(chapter.location ?? "");
 
   return (
     <form action={updateAction} className="space-y-3">
@@ -160,6 +177,18 @@ function EditForm({
         rows={4}
         required
       />
+      <div>
+        <Input
+          label="Where this happens"
+          name="location"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="e.g. Boracay, White Beach"
+        />
+        <p className="mt-1 text-xs text-neutral-500">
+          Optional — the specific place this story is about (e.g. Boracay, White Beach).
+        </p>
+      </div>
       <div className="flex gap-2">
         <Button type="submit" variant="primary" size="sm">
           Save

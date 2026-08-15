@@ -3,6 +3,7 @@ export interface PublicJourneyDetail {
   title: string;
   travelerName: string;
   introduction: string;
+  location: string | null;
   travelStartDate: string;
   travelEndDate: string;
   publishedAt: string | null;
@@ -27,6 +28,7 @@ export interface PublicJourneyDetail {
     title: string;
     order: number;
     content: string;
+    location: string | null;
     media: Array<{
       id: string;
       url: string;
@@ -42,6 +44,7 @@ export interface PublicJourneyDetail {
     date: string;
     title: string;
     description: string | null;
+    location: string | null;
     order: number;
   }>;
   quotes: Array<{
@@ -97,6 +100,7 @@ export function toPublicJourneyDetail(
     title: journey.title as string,
     travelerName: journey.travelerName as string,
     introduction: journey.introduction as string,
+    location: (journey.location as string | null) ?? null,
     travelStartDate: new Date(
       journey.travelStartDate as string
     ).toISOString(),
@@ -130,6 +134,7 @@ export function toPublicJourneyDetail(
         title: ch.title as string,
         order: ch.order as number,
         content: ch.content as string,
+        location: (ch.location as string | null) ?? null,
         media: chMedia.map((m) => ({
           id: m.id as string,
           url: m.url as string,
@@ -146,6 +151,7 @@ export function toPublicJourneyDetail(
       date: new Date(e.date as string).toISOString(),
       title: e.title as string,
       description: (e.description as string) ?? null,
+      location: (e.location as string | null) ?? null,
       order: e.order as number,
     })),
     quotes: quotes.map((q) => ({

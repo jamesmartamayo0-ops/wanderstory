@@ -6,14 +6,17 @@ import PhotoCredit from "./PhotoCredit";
 
 interface DestinationDirectoryCardProps {
   destination: DestinationCardView;
+  variant?: "default" | "feature";
 }
 
 export default function DestinationDirectoryCard({
   destination,
+  variant = "default",
 }: DestinationDirectoryCardProps) {
   const continent = destination.continent
     ? getContinent(destination.continent)
     : null;
+  const isFeature = variant === "feature";
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-elevated)] transition-shadow duration-300 hover:shadow-lg">
@@ -21,12 +24,20 @@ export default function DestinationDirectoryCard({
         href={`/destinations/${destination.slug}`}
         className="flex flex-1 flex-col"
       >
-        <div className="relative aspect-[4/3] overflow-hidden">
+        <div
+          className={`relative overflow-hidden ${
+            isFeature ? "aspect-[16/10]" : "aspect-[4/3]"
+          }`}
+        >
           <Image
             src={destination.imageSrc}
             alt={destination.imageAlt}
             fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            sizes={
+              isFeature
+                ? "(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 67vw"
+                : "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            }
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
 

@@ -32,6 +32,7 @@ export async function createTimelineEvent(
     date: formData.get("date"),
     title: formData.get("title"),
     description: formData.get("description"),
+    location: formData.get("location"),
   });
 
   if (!parsed.success) {
@@ -76,6 +77,7 @@ export async function updateTimelineEvent(
     date: formData.get("date"),
     title: formData.get("title"),
     description: formData.get("description"),
+    location: formData.get("location"),
   });
 
   if (!parsed.success) {
@@ -93,6 +95,7 @@ export async function updateTimelineEvent(
       date: parsed.data.date,
       title: parsed.data.title,
       description: parsed.data.description,
+      location: parsed.data.location,
     }
   );
 

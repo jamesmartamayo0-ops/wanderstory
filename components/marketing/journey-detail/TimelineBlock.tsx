@@ -43,6 +43,11 @@ export default function TimelineBlock({ timelineEvents }: TimelineBlockProps) {
                 <h3 className="mt-1 font-[family-name:var(--font-heading)] text-lg font-semibold text-[var(--color-ink-950)]">
                   {event.title}
                 </h3>
+                {event.location && (
+                  <p className="mt-0.5 font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+                    {event.location}
+                  </p>
+                )}
                 {event.description && (
                   <p className="mt-1 font-[family-name:var(--font-body)] text-base leading-relaxed text-[var(--color-ink-950)]/70">
                     {event.description}

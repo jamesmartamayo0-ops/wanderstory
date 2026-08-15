@@ -114,6 +114,7 @@ model Journey {
   travelStartDate DateTime
   travelEndDate   DateTime
   introduction    String   @db.Text
+  location        String?
 
   status       JourneyStatus     @default(DRAFT)
   featured     Boolean           @default(false)
@@ -163,6 +164,7 @@ model Chapter {
   title     String
   order     Int
   content   String   @db.Text
+  location  String?
   media     Media[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -178,6 +180,7 @@ model TimelineEvent {
   date        DateTime
   title       String
   description String?  @db.Text
+  location    String?
   order       Int
 
   @@unique([journeyId, order])

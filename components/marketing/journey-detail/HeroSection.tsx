@@ -66,6 +66,7 @@ export default function HeroSection({ journey, slug }: HeroSectionProps) {
         travelerName={travelerName}
         destinationName={destination.name}
         destinationCountry={destination.country}
+        location={journey.location}
         startDate={startDate}
         endDate={endDate}
         categories={categories}

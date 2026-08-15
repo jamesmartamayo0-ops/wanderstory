@@ -3,8 +3,15 @@ import { toDestinationCard } from "@/lib/adapters/destination.adapter";
 import { CONTINENTS } from "@/data/continents";
 import ContinentNav from "./ContinentNav";
 import DestinationsContent from "./DestinationsContent";
+import DestinationSearch from "./destination-search/DestinationSearch";
 
-export default async function Destinations() {
+interface DestinationsProps {
+  initialQuery?: string;
+}
+
+export default async function Destinations({
+  initialQuery = "",
+}: DestinationsProps) {
   const raw = await getPublicDestinationDirectory();
   const destinations = raw.map(toDestinationCard);
 
@@ -37,10 +44,12 @@ export default async function Destinations() {
           </h1>
 
           <p className="mx-auto mt-3 max-w-xl font-[family-name:var(--font-body)] text-base text-neutral-500">
-            One curated place per country — from misty highlands to
-            sun-scorched deserts, every destination has a story waiting for
-            you.
+            Find the place behind the story.
           </p>
+
+          <div className="mx-auto mt-8 max-w-xl">
+            <DestinationSearch initialQuery={initialQuery} />
+          </div>
 
           <div className="mt-8">
             <ContinentNav />
@@ -66,7 +75,7 @@ export default async function Destinations() {
                       {group.length === 1 ? "country" : "countries"}
                     </p>
                   </div>
-                  <DestinationsContent destinations={group} />
+                  <DestinationsContent destinations={group} featureFirst />
                 </section>
               );
             })}

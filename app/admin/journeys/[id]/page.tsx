@@ -216,6 +216,27 @@ export default async function JourneyEditPage({
 
               <div>
                 <label
+                  htmlFor="location"
+                  className="block text-sm font-medium"
+                >
+                  Where this happens
+                </label>
+                <input
+                  id="location"
+                  name="location"
+                  type="text"
+                  maxLength={200}
+                  defaultValue={journey.location ?? ""}
+                  placeholder="e.g. Boracay, White Beach"
+                  className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                />
+                <p className="mt-1 text-xs text-neutral-500">
+                  Optional — the specific place this story is about (e.g. Boracay, White Beach).
+                </p>
+              </div>
+
+              <div>
+                <label
                   htmlFor="clientId"
                   className="block text-sm font-medium"
                 >

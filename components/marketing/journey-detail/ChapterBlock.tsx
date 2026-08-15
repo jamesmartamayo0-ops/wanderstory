@@ -34,6 +34,12 @@ export default function ChapterBlock({ chapters }: ChapterBlockProps) {
                 {chapter.title}
               </h3>
 
+              {chapter.location && (
+                <p className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+                  {chapter.location}
+                </p>
+              )}
+
               <div className="prose prose-neutral max-w-none font-[family-name:var(--font-body)] text-base leading-relaxed text-[var(--color-ink-950)]/80">
                 {chapter.content.split("\n").map((paragraph, i) => (
                   <p key={i}>{paragraph}</p>

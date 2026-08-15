@@ -70,12 +70,13 @@ export async function createJourney(
       prisma.journey.findUnique({ where: { slug: s } })
     );
 
-    const { categoryIds, ...journeyData } = data;
+    const { categoryIds, location, ...journeyData } = data;
 
     const journey = await prisma.journey.create({
       data: {
         ...journeyData,
         slug,
+        location: location === "" ? null : location ?? null,
         categories: categoryIds?.length
           ? {
               create: categoryIds.map((categoryId) => ({ categoryId })),
@@ -110,6 +111,7 @@ export async function updateJourney(
     // convert empty string media IDs to null for Prisma
     if (restData.coverMediaId === "") restData.coverMediaId = null;
     if (restData.ogImageId === "") restData.ogImageId = null;
+    if (restData.location === "") restData.location = null;
 
     const journey = await prisma.$transaction(async (tx) => {
       if (data.categoryIds !== undefined) {
@@ -326,6 +328,7 @@ export async function getPublicJourneyBySlug(slug: string) {
         travelStartDate: true,
         travelEndDate: true,
         introduction: true,
+        location: true,
         publishedAt: true,
         seoTitle: true,
         seoDescription: true,
@@ -354,6 +357,7 @@ export async function getPublicJourneyBySlug(slug: string) {
             title: true,
             order: true,
             content: true,
+            location: true,
             media: {
               select: {
                 id: true,
@@ -376,6 +380,7 @@ export async function getPublicJourneyBySlug(slug: string) {
             date: true,
             title: true,
             description: true,
+            location: true,
             order: true,
           },
           orderBy: { order: "asc" },

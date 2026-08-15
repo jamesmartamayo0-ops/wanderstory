@@ -1,4 +1,5 @@
 import { signIn } from "@/lib/auth";
+import AdminThemeLock from "@/components/admin/AdminThemeLock";
 
 export default async function AdminLoginPage({
   searchParams,
@@ -8,22 +9,25 @@ export default async function AdminLoginPage({
   const params = await searchParams;
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">WanderStory</h1>
-          <p className="mt-2 text-muted-foreground">Admin sign in</p>
+    <>
+      <AdminThemeLock />
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">WanderStory</h1>
+            <p className="mt-2 text-muted-foreground">Admin sign in</p>
+          </div>
+
+          {params.error && (
+            <p className="text-sm text-red-600">
+              Invalid email or password
+            </p>
+          )}
+
+          <LoginForm callbackUrl={params.callbackUrl} />
         </div>
-
-        {params.error && (
-          <p className="text-sm text-red-600">
-            Invalid email or password
-          </p>
-        )}
-
-        <LoginForm callbackUrl={params.callbackUrl} />
       </div>
-    </div>
+    </>
   );
 }
 

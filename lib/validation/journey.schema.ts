@@ -18,6 +18,7 @@ export const createJourneySchema = z.object({
   clientId: z.string().min(1, "Client is required"),
   destinationId: z.string().min(1, "Destination is required"),
   categoryIds: z.array(z.string()).optional().default([]),
+  location: z.string().max(200).optional().or(z.literal("")),
 });
 
 export const updateJourneySchema = z.object({
@@ -32,6 +33,7 @@ export const updateJourneySchema = z.object({
   coverMediaId: z.string().optional().or(z.literal("")),
   ogImageId: z.string().optional().or(z.literal("")),
   visibility: z.nativeEnum(JourneyVisibility).optional(),
+  location: z.string().max(200).optional().or(z.literal("")),
 });
 
 export const autosaveJourneySchema = updateJourneySchema;

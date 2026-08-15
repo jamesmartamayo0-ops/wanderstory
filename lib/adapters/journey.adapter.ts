@@ -4,6 +4,7 @@ export interface PublicJourney {
   title: string;
   travelerName: string;
   introduction: string;
+  location: string | null;
   destinationName: string;
   destinationCountry: string;
   coverUrl: string | null;
@@ -35,6 +36,7 @@ export function toPublicJourney(
     title: journey.title as string,
     travelerName: journey.travelerName as string,
     introduction: journey.introduction as string,
+    location: (journey.location as string | null) ?? null,
     destinationName: destination?.name ?? "Unknown",
     destinationCountry: destination?.country ?? "",
     coverUrl: coverMedia?.url ?? null,

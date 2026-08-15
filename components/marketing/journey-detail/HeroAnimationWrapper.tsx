@@ -7,6 +7,7 @@ interface HeroAnimationWrapperProps {
   travelerName: string;
   destinationName: string;
   destinationCountry: string;
+  location: string | null;
   startDate: string;
   endDate: string;
   categories: Array<{ name: string; slug: string }>;
@@ -17,6 +18,7 @@ export default function HeroAnimationWrapper({
   travelerName,
   destinationName,
   destinationCountry,
+  location,
   startDate,
   endDate,
   categories,
@@ -70,6 +72,15 @@ export default function HeroAnimationWrapper({
         {title}
       </motion.h1>
 
+      {location && (
+        <motion.p
+          variants={item}
+          className="font-[family-name:var(--font-button)] text-sm font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]"
+        >
+          {location}
+        </motion.p>
+      )}
+
       <motion.p
         variants={item}
         className="font-[family-name:var(--font-body)] text-lg text-white/80 sm:text-xl"
@@ -81,7 +92,7 @@ export default function HeroAnimationWrapper({
         variants={item}
         className="font-[family-name:var(--font-body)] text-base text-white/60"
       >
-        {destinationName}, {destinationCountry}
+        {location ? destinationCountry : `${destinationName}, ${destinationCountry}`}
       </motion.p>
 
       <motion.p

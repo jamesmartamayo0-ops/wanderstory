@@ -9,12 +9,18 @@ export const metadata: Metadata = {
     "Discover places that stir the soul — from misty highlands to sun-scorched deserts, every destination has a story waiting for you.",
 };
 
-export default async function DestinationsPage() {
+export default async function DestinationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+
   return (
     <>
       <Navbar />
       <main>
-        <Destinations />
+        <Destinations initialQuery={q ?? ""} />
       </main>
       <Footer />
     </>
