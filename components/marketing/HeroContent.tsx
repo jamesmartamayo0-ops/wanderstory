@@ -63,7 +63,7 @@ export default function HeroContent({
       <div className="absolute inset-0">
         <video
           ref={videoRef}
-          className="hero-video absolute inset-0 h-full w-full object-cover"
+          className="hero-video absolute inset-0 z-10 h-full w-full object-cover"
           autoPlay
           muted
           loop
@@ -78,7 +78,7 @@ export default function HeroContent({
         </video>
 
         <motion.div
-          className="relative h-full w-full"
+          className="relative z-0 h-full w-full"
           initial={{ scale: 1 }}
           animate={{ scale: 1.05 }}
           transition={{ duration: shouldReduceMotion ? 0 : 20, ease: "linear" }}
@@ -93,14 +93,14 @@ export default function HeroContent({
           />
         </motion.div>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-ink-950)]/85 via-[var(--color-ink-950)]/35 to-[var(--color-ink-950)]/10" />
+        <div className="absolute inset-0 z-20 bg-gradient-to-t from-[var(--color-ink-950)]/85 via-[var(--color-ink-950)]/35 to-[var(--color-ink-950)]/10" />
       </div>
 
       <motion.div
         variants={container}
         initial="hidden"
         animate="visible"
-        className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-5 px-6"
+        className="relative z-30 mx-auto flex w-full max-w-6xl flex-col gap-5 px-6"
       >
         <motion.span
           variants={item}
