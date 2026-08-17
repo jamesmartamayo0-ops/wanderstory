@@ -51,6 +51,7 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
     if (result.success) {
       revalidatePath("/admin/destinations");
       revalidatePath("/destinations");
+      revalidatePath("/");
       revalidatePath("/destinations/[slug]");
       revalidatePath("/sitemap.xml");
       revalidatePath("/destinations/search-index");
@@ -81,6 +82,7 @@ export async function saveDestination(formData: FormData): Promise<ActionResult>
   if (result.success) {
     revalidatePath("/admin/destinations");
     revalidatePath("/destinations");
+    revalidatePath("/");
     revalidatePath("/destinations/[slug]");
     revalidatePath("/sitemap.xml");
       revalidatePath("/destinations/search-index");
@@ -98,6 +100,7 @@ export async function deleteDestination(id: string): Promise<ActionResult> {
   if (result.success) {
     revalidatePath("/admin/destinations");
     revalidatePath("/destinations");
+    revalidatePath("/");
     revalidatePath("/destinations/[slug]");
     revalidatePath("/sitemap.xml");
       revalidatePath("/destinations/search-index");
@@ -121,6 +124,7 @@ export async function updateDestinationPublished(
   if (result.success) {
     revalidatePath("/admin/destinations");
     revalidatePath("/destinations");
+    revalidatePath("/");
     revalidatePath("/destinations/[slug]");
     revalidatePath("/sitemap.xml");
       revalidatePath("/destinations/search-index");
