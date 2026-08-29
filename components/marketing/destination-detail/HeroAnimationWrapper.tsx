@@ -53,7 +53,7 @@ export default function HeroAnimationWrapper({
 
       <motion.h1
         variants={item}
-        className="max-w-4xl font-[family-name:var(--font-heading)] text-4xl font-semibold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl"
+        className="max-w-4xl font-[family-name:var(--font-heading)] text-4xl font-semibold leading-[1.1] tracking-tight text-[var(--color-text-on-media)] sm:text-5xl lg:text-6xl"
       >
         {name}
       </motion.h1>

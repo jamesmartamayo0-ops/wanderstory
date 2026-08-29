@@ -17,7 +17,7 @@ export default async function AdminLayout({
   return (
     <>
       <AdminThemeLock />
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-white text-[#171717] [color-scheme:light]">
       <aside className="w-64 border-r bg-neutral-50 p-6">
         <nav className="space-y-4">
           <div className="text-lg font-bold">WanderStory</div>

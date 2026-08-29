@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
 import {
   THEME_PREFERENCES,
@@ -24,10 +24,10 @@ const NEXT_ACTION_LABEL: Record<ThemePreference, string> = {
   system: "Switch to light theme",
 };
 
-export default function ThemeToggle() {
+export default function ThemeToggle({ overMedia = false }: { overMedia?: boolean }) {
   const [preference, setPreference] = useState<ThemePreference>("system");
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const stored = getStoredTheme();
     const initial = stored ?? "system";
     setPreference(initial);
@@ -66,7 +66,11 @@ export default function ThemeToggle() {
       type="button"
       onClick={cycle}
       aria-label={NEXT_ACTION_LABEL[preference]}
-      className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-[var(--color-ocean-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ocean-600)] focus-visible:ring-offset-2"
+      className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+        overMedia
+          ? "text-[var(--color-text-on-media)] hover:bg-white/15 focus-visible:ring-white focus-visible:ring-offset-transparent"
+          : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-accent)] hover:text-[var(--color-text-link)] focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-[var(--color-surface)]"
+      }`}
     >
       <Icon className="h-5 w-5" aria-hidden="true" />
     </button>

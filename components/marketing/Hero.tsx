@@ -24,7 +24,7 @@ const DEFAULT_HERO: Required<HeroProps> = {
   description:
     "Handpicked routes and honest storytelling — the kind of detail that turns a trip into a story worth telling twice.",
   ctaLabel: "Start Exploring",
-  ctaHref: "#explore",
+  ctaHref: "/#explore",
   imageSrc: "/hero/placeholder-hero.jpg",
   imageAlt: "Sweeping coastal cliffside at golden hour",
   videoSrc: "/hero/hero-ambient.mp4",

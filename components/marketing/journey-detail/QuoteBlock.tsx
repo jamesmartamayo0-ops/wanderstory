@@ -10,12 +10,12 @@ export default function QuoteBlock({ quotes }: QuoteBlockProps) {
   return (
     <section
       aria-label="Quotes"
-      className="bg-[var(--color-ink-950)] px-6 py-20 sm:py-28"
+      className="bg-[var(--color-media-scrim)] px-6 py-20 sm:py-28"
     >
       <div className="mx-auto max-w-3xl space-y-12">
         {quotes.map((quote) => (
           <blockquote key={quote.id} className="text-center">
-            <p className="font-[family-name:var(--font-heading)] text-2xl font-semibold leading-snug tracking-tight text-white sm:text-3xl">
+            <p className="font-[family-name:var(--font-heading)] text-2xl font-semibold leading-snug tracking-tight text-[var(--color-text-inverse)] sm:text-3xl">
               &ldquo;{quote.text}&rdquo;
             </p>
             {quote.attribution && (

@@ -58,7 +58,7 @@ export default function HeroAnimationWrapper({
         {categories.map((cat) => (
           <span
             key={cat.slug}
-            className="rounded-[var(--radius-pill)] bg-white/20 px-3 py-1 font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-wider text-white backdrop-blur-sm"
+            className="rounded-[var(--radius-pill)] bg-white/20 px-3 py-1 font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-wider text-[var(--color-text-on-media)] backdrop-blur-sm"
           >
             {cat.name}
           </span>
@@ -67,7 +67,7 @@ export default function HeroAnimationWrapper({
 
       <motion.h1
         variants={item}
-        className="max-w-4xl font-[family-name:var(--font-heading)] text-4xl font-semibold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl"
+        className="max-w-4xl font-[family-name:var(--font-heading)] text-4xl font-semibold leading-[1.1] tracking-tight text-[var(--color-text-on-media)] sm:text-5xl lg:text-6xl"
       >
         {title}
       </motion.h1>
@@ -83,21 +83,21 @@ export default function HeroAnimationWrapper({
 
       <motion.p
         variants={item}
-        className="font-[family-name:var(--font-body)] text-lg text-white/80 sm:text-xl"
+        className="font-[family-name:var(--font-body)] text-lg text-[var(--color-text-on-media)]/85 sm:text-xl"
       >
         by {travelerName}
       </motion.p>
 
       <motion.p
         variants={item}
-        className="font-[family-name:var(--font-body)] text-base text-white/60"
+        className="font-[family-name:var(--font-body)] text-base text-[var(--color-media-caption)]"
       >
         {location ? destinationCountry : `${destinationName}, ${destinationCountry}`}
       </motion.p>
 
       <motion.p
         variants={item}
-        className="font-[family-name:var(--font-body)] text-sm text-white/50"
+        className="font-[family-name:var(--font-body)] text-sm text-[var(--color-media-caption)]/80"
       >
         {startDate} — {endDate}
       </motion.p>

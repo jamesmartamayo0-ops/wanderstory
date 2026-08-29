@@ -28,7 +28,7 @@ export default function HeroSection({ destination }: HeroSectionProps) {
         ) : (
           <div className="h-full w-full bg-[var(--color-ocean-600)]" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-ink-950)]/85 via-[var(--color-ink-950)]/35 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-media-scrim)]/90 via-[var(--color-media-scrim)]/40 to-transparent" />
       </div>
 
       <HeroAnimationWrapper

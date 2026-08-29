@@ -74,7 +74,7 @@ export default async function JourneyPage({ params }: JourneyPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
-      <Navbar />
+      <Navbar overMedia />
       <main>
         <JourneyDetail journey={journey} slug={slug} />
       </main>

@@ -15,10 +15,10 @@ export default function TimelineBlock({ timelineEvents }: TimelineBlockProps) {
     >
       <div className="mx-auto max-w-3xl">
         <div className="mb-12">
-          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
             Timeline
           </span>
-          <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[var(--color-ink-950)] sm:text-3xl">
+          <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-3xl">
             Journey Highlights
           </h2>
         </div>
@@ -36,20 +36,20 @@ export default function TimelineBlock({ timelineEvents }: TimelineBlockProps) {
 
             return (
               <div key={event.id} className="relative">
-                <div className="absolute left-[-29px] top-1.5 h-4 w-4 rounded-full border-2 border-[var(--color-ocean-400)] bg-[var(--color-surface-alt)]" />
-                <time className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-wider text-[var(--color-ocean-600)]">
+                <div className="absolute left-[-29px] top-1.5 h-4 w-4 rounded-full border-2 border-[var(--color-interactive)] bg-[var(--color-surface-alt)]" />
+                <time className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-wider text-[var(--color-text-link)]">
                   {eventDate}
                 </time>
-                <h3 className="mt-1 font-[family-name:var(--font-heading)] text-lg font-semibold text-[var(--color-ink-950)]">
+                <h3 className="mt-1 font-[family-name:var(--font-heading)] text-lg font-semibold text-[var(--color-text-primary)]">
                   {event.title}
                 </h3>
                 {event.location && (
-                  <p className="mt-0.5 font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+                  <p className="mt-0.5 font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
                     {event.location}
                   </p>
                 )}
                 {event.description && (
-                  <p className="mt-1 font-[family-name:var(--font-body)] text-base leading-relaxed text-[var(--color-ink-950)]/70">
+                  <p className="mt-1 font-[family-name:var(--font-body)] text-base leading-relaxed text-[var(--color-text-secondary)]">
                     {event.description}
                   </p>
                 )}

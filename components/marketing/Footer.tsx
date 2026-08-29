@@ -33,24 +33,24 @@ const SOCIAL_LINKS = [
 
 export default function Footer() {
   return (
-    <footer className="relative overflow-hidden border-t border-neutral-100 bg-[var(--color-surface)] px-6 py-14">
+    <footer className="relative overflow-hidden border-t border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-14">
       <div className="mx-auto flex max-w-6xl flex-col gap-10 sm:flex-row sm:justify-between">
         <div className="max-w-xs">
           <Logo />
-          <p className="mt-4 font-[family-name:var(--font-body)] text-sm text-neutral-500">
+          <p className="mt-4 font-[family-name:var(--font-body)] text-sm text-[var(--color-text-muted)]">
             Every journey tells a story.
           </p>
         </div>
 
         <div className="flex flex-col gap-3">
-          <span className="font-[family-name:var(--font-heading)] text-sm font-semibold text-neutral-900">
+          <span className="font-[family-name:var(--font-heading)] text-sm font-semibold text-[var(--color-text-primary)]">
             Quick Links
           </span>
           {QUICK_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="font-[family-name:var(--font-body)] text-sm text-neutral-600 hover:text-[var(--color-ocean-600)]"
+              className="rounded-sm font-[family-name:var(--font-body)] text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-link)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
             >
               {link.label}
             </Link>
@@ -58,7 +58,7 @@ export default function Footer() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <span className="font-[family-name:var(--font-heading)] text-sm font-semibold text-neutral-900">
+          <span className="font-[family-name:var(--font-heading)] text-sm font-semibold text-[var(--color-text-primary)]">
             Connect
           </span>
           <div className="flex gap-3">
@@ -69,7 +69,7 @@ export default function Footer() {
                 target={social.href.startsWith("mailto:") ? undefined : "_blank"}
                 rel={social.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
                 aria-label={social.label}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 transition-colors hover:bg-[var(--color-ocean-600)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ocean-600)] focus-visible:ring-offset-2"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-surface-accent)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-interactive)] hover:text-[var(--color-text-on-media)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]"
               >
                 {"svgPath" in social ? (
                   <svg viewBox="0 0 16 16" className="h-4 w-4 fill-current">
@@ -84,8 +84,8 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="mx-auto mt-10 max-w-6xl border-t border-neutral-100 pt-6">
-        <p className="font-[family-name:var(--font-body)] text-xs text-neutral-400">
+      <div className="mx-auto mt-10 max-w-6xl border-t border-[var(--color-border)] pt-6">
+        <p className="font-[family-name:var(--font-body)] text-xs text-[var(--color-text-subtle)]">
           &copy; {new Date().getFullYear()} WanderStory. All rights reserved.
         </p>
       </div>

@@ -7,7 +7,7 @@ interface StepCardProps {
 }
 
 function renderIcon(name: string) {
-  const className = "h-6 w-6 text-white";
+  const className = "h-6 w-6 text-[var(--color-text-on-media)]";
   switch (name) {
     case "Compass":
       return <Compass className={className} aria-hidden="true" />;
@@ -30,15 +30,15 @@ export default function StepCard({ step, circleColor }: StepCardProps) {
         {renderIcon(step.icon)}
       </div>
 
-      <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-sunset-400)]">
+      <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-accent)]">
         Step {step.stepNumber}
       </span>
 
-      <h3 className="mt-2 font-[family-name:var(--font-heading)] text-xl font-semibold text-[var(--color-ink-950)]">
+      <h3 className="mt-2 font-[family-name:var(--font-heading)] text-xl font-semibold text-[var(--color-text-primary)]">
         {step.title}
       </h3>
 
-      <p className="mt-2 max-w-xs font-[family-name:var(--font-body)] text-sm leading-relaxed text-neutral-500">
+      <p className="mt-2 max-w-xs font-[family-name:var(--font-body)] text-sm leading-relaxed text-[var(--color-text-muted)]">
         {step.description}
       </p>
     </article>

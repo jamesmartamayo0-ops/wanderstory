@@ -40,7 +40,7 @@ export default function TimelineAnimationWrapper({
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: "-80px" }}
-      className="relative space-y-8 pl-8 before:absolute before:left-[11px] before:top-0 before:h-full before:w-0.5 before:bg-[var(--color-ocean-200)]"
+      className="relative space-y-8 pl-8 before:absolute before:left-[11px] before:top-0 before:h-full before:w-0.5 before:bg-[var(--color-interactive)]/30"
     >
       {children.map((child, index) => (
         <motion.div key={index} variants={item}>

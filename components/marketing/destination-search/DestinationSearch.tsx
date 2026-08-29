@@ -168,7 +168,7 @@ export default function DestinationSearch({
     <div className="relative">
       <div className="relative">
         <Search
-          className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-neutral-400"
+          className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-[var(--color-text-subtle)]"
           aria-hidden="true"
         />
         <input
@@ -192,7 +192,7 @@ export default function DestinationSearch({
             setTimeout(() => setIsOpen(false), 120);
           }}
           onKeyDown={handleKeyDown}
-          className="w-full rounded-[var(--radius-pill)] border border-neutral-200 bg-[var(--color-surface)] py-3 pr-11 pl-12 font-[family-name:var(--font-body)] text-sm text-[var(--color-ink-950)] shadow-[var(--shadow-elevated)] transition-colors placeholder:text-neutral-400 focus:border-[var(--color-ocean-600)] focus:ring-2 focus:ring-[var(--color-ocean-600)]/30 focus:outline-none"
+          className="w-full rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] py-3 pr-11 pl-12 font-[family-name:var(--font-body)] text-sm text-[var(--color-text-primary)] shadow-[var(--shadow-elevated)] transition-colors placeholder:text-[var(--color-text-subtle)] focus:border-[var(--color-focus-ring)] focus:ring-2 focus:ring-[var(--color-focus-ring)]/30 focus:outline-none"
         />
         {query && (
           <button
@@ -202,7 +202,7 @@ export default function DestinationSearch({
               handleInputChange("");
               inputRef.current?.focus();
             }}
-            className="absolute top-1/2 right-3 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+            className="absolute top-1/2 right-3 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-[var(--color-text-subtle)] transition-colors hover:bg-[var(--color-surface-accent)] hover:text-[var(--color-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -210,15 +210,15 @@ export default function DestinationSearch({
       </div>
 
       {isOpen && hasQuery && (
-        <div className="absolute inset-x-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-neutral-200 bg-[var(--color-surface)] shadow-[var(--shadow-elevated)]">
+        <div className="absolute inset-x-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] shadow-[var(--shadow-elevated)]">
           {results.length === 0 ? (
-            <p className="px-5 py-4 text-sm text-neutral-500" role="status">
+            <p className="px-5 py-4 text-sm text-[var(--color-text-muted)]" role="status">
               No destinations match &ldquo;{query}&rdquo;.
             </p>
           ) : (
             <>
               <p
-                className="px-5 pt-3 text-xs text-neutral-400"
+                className="px-5 pt-3 text-xs text-[var(--color-text-subtle)]"
                 role="status"
                 aria-live="polite"
               >
@@ -247,24 +247,24 @@ export default function DestinationSearch({
                         setIsOpen(false);
                         inputRef.current?.blur();
                       }}
-                      className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors ${
+                      className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] ${
                         index === activeIndex
-                          ? "bg-[var(--color-ocean-600)]/10"
-                          : ""
+                          ? "bg-[var(--color-surface-accent)]"
+                          : "hover:bg-[var(--color-surface-accent)]"
                       }`}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate font-[family-name:var(--font-body)] text-sm font-medium text-[var(--color-ink-950)]">
+                        <span className="block truncate font-[family-name:var(--font-body)] text-sm font-medium text-[var(--color-text-primary)]">
                           {destination.name}
                         </span>
                         {destination.featuredPlace && (
-                          <span className="block truncate text-xs text-neutral-500">
+                          <span className="block truncate text-xs text-[var(--color-text-muted)]">
                             {destination.featuredPlace}
                           </span>
                         )}
                       </span>
                       {destination.continent && (
-                        <span className="shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-neutral-500 uppercase">
+                        <span className="shrink-0 rounded-full bg-[var(--color-surface-accent)] px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-[var(--color-text-muted)] uppercase">
                           {destination.continent.replace(/-/g, " ")}
                         </span>
                       )}

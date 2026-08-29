@@ -47,17 +47,17 @@ export default function RelatedJourneysBlock({
     >
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center">
-          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
             Journeys
           </span>
-          <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[var(--color-ink-950)] sm:text-3xl">
+          <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-3xl">
             Related Journeys
           </h2>
         </div>
 
         {groups.map((group) => (
           <div key={group.key ?? "other"} className="mb-10 last:mb-0">
-            <h3 className="mb-5 font-[family-name:var(--font-heading)] text-lg font-semibold text-[var(--color-ink-950)]">
+            <h3 className="mb-5 font-[family-name:var(--font-heading)] text-lg font-semibold text-[var(--color-text-primary)]">
               {group.label}
             </h3>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -65,7 +65,7 @@ export default function RelatedJourneysBlock({
                 <Link
                   key={journey.id}
                   href={`/journeys/${journey.slug}`}
-                  className="transition-opacity duration-300 hover:opacity-90"
+                  className="rounded-[var(--radius-card)] transition-opacity duration-300 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--color-surface-alt)] motion-reduce:transition-none"
                 >
                   <JourneyCard journey={journey} />
                 </Link>

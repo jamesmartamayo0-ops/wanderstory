@@ -11,7 +11,7 @@ export default async function AdminLoginPage({
   return (
     <>
       <AdminThemeLock />
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white px-6 text-[#171717] [color-scheme:light]">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center">
             <h1 className="text-2xl font-bold">WanderStory</h1>

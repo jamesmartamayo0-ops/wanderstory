@@ -2,7 +2,31 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #172033;
+
+  --color-text-primary: var(--color-ink-950);
+  --color-text-secondary: #3f4754;
+  --color-text-muted: #596474;
+  --color-text-subtle: #647080;
+  --color-text-link: var(--color-ocean-600);
+  --color-text-accent: #c2410c;
+  --color-text-on-media: #ffffff;
+  --color-text-inverse: #f8fafc;
+
+  --color-surface: #fdfcf9;
+  --color-surface-alt: #f5f2ec;
+  --color-surface-raised: #ffffff;
+  --color-surface-accent: #eff6ff;
+
+  --color-border: #e2e0db;
+  --color-border-strong: #c7c5bf;
+
+  --color-interactive: var(--color-ocean-600);
+  --color-interactive-hover: #1d4ed8;
+  --color-focus-ring: var(--color-ocean-600);
+
+  --color-media-scrim: var(--color-ink-950);
+  --color-media-caption: rgba(255, 255, 255, 0.76);
 }
 
 @theme inline {
@@ -15,8 +39,6 @@
   --color-sky-400: #38bdf8;
   --color-sunset-400: #fb923c;
   --color-forest-600: #16a34a;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f8fafc;
   --color-ink-950: #020617;
 
   --font-heading: var(--font-sora);
@@ -38,15 +60,30 @@
 
 :root[data-theme="light"] {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #172033;
 }
 
 :root[data-theme="dark"] {
   --background: #141417;
   --foreground: #eceae5;
 
-  --color-surface: #1c1c21;
-  --color-surface-alt: #17171b;
+  --color-text-primary: #f3f1ec;
+  --color-text-secondary: #d3d0ca;
+  --color-text-muted: #aaa7a1;
+  --color-text-subtle: #8e8b86;
+  --color-text-link: var(--color-sky-400);
+  --color-text-accent: var(--color-sunset-400);
+
+  --color-surface: #17171b;
+  --color-surface-alt: #1c1c21;
+  --color-surface-raised: #24242b;
+  --color-surface-accent: #18263b;
+
+  --color-border: #34343d;
+  --color-border-strong: #4a4a55;
+
+  --color-interactive-hover: #1d4ed8;
+  --color-focus-ring: var(--color-sky-400);
 
   --color-neutral-50: #1c1c21;
   --color-neutral-100: #232329;
@@ -66,7 +103,12 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-interactive) 28%, transparent);
+  color: var(--color-text-primary);
 }
 @keyframes footer-plane-fly {
   from {
@@ -89,6 +131,10 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .animate-pulse {
+    animation: none !important;
+  }
+
   .footer-plane {
     animation: none;
     left: 50%;

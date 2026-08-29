@@ -2,9 +2,9 @@ import { Compass, Users, Leaf } from "lucide-react";
 import { aboutData } from "@/data/about";
 
 const iconMap: Record<string, React.ReactNode> = {
-  Compass: <Compass className="h-6 w-6 text-white" aria-hidden="true" />,
-  Users: <Users className="h-6 w-6 text-white" aria-hidden="true" />,
-  Leaf: <Leaf className="h-6 w-6 text-white" aria-hidden="true" />,
+  Compass: <Compass className="h-6 w-6 text-[var(--color-text-on-media)]" aria-hidden="true" />,
+  Users: <Users className="h-6 w-6 text-[var(--color-text-on-media)]" aria-hidden="true" />,
+  Leaf: <Leaf className="h-6 w-6 text-[var(--color-text-on-media)]" aria-hidden="true" />,
 };
 
 const circleColors = [
@@ -24,15 +24,15 @@ export default function About() {
         className="bg-[var(--color-surface-alt)] px-6 pt-32 pb-20 sm:pb-28"
       >
         <div className="mx-auto max-w-3xl text-center">
-          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
             {heroSubtitle}
           </span>
 
-          <h1 className="mt-3 font-[family-name:var(--font-heading)] text-4xl font-semibold leading-tight tracking-tight text-[var(--color-ink-950)] sm:text-5xl">
+          <h1 className="mt-3 font-[family-name:var(--font-heading)] text-4xl font-semibold leading-tight tracking-tight text-[var(--color-text-primary)] sm:text-5xl">
             {heroTitle}
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl font-[family-name:var(--font-body)] text-base leading-relaxed text-neutral-500 sm:text-lg">
+          <p className="mx-auto mt-5 max-w-2xl font-[family-name:var(--font-body)] text-base leading-relaxed text-[var(--color-text-muted)] sm:text-lg">
             {heroDescription}
           </p>
         </div>
@@ -43,15 +43,15 @@ export default function About() {
         className="bg-[var(--color-surface)] px-6 py-20 sm:py-28"
       >
         <div className="mx-auto max-w-3xl text-center">
-          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
             Why We Exist
           </span>
 
-          <h2 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-semibold leading-tight tracking-tight text-[var(--color-ink-950)] sm:text-4xl">
+          <h2 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-semibold leading-tight tracking-tight text-[var(--color-text-primary)] sm:text-4xl">
             {missionTitle}
           </h2>
 
-          <p className="mx-auto mt-5 max-w-2xl font-[family-name:var(--font-body)] text-base leading-relaxed text-neutral-500">
+          <p className="mx-auto mt-5 max-w-2xl font-[family-name:var(--font-body)] text-base leading-relaxed text-[var(--color-text-muted)]">
             {missionDescription}
           </p>
         </div>
@@ -63,11 +63,11 @@ export default function About() {
       >
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 text-center">
-            <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+            <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
               What Guides Us
             </span>
 
-            <h2 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-semibold leading-tight tracking-tight text-[var(--color-ink-950)] sm:text-4xl">
+            <h2 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-semibold leading-tight tracking-tight text-[var(--color-text-primary)] sm:text-4xl">
               Our Values
             </h2>
           </div>
@@ -88,11 +88,11 @@ export default function About() {
                   {iconMap[value.icon]}
                 </div>
 
-                <h3 className="font-[family-name:var(--font-heading)] text-xl font-semibold text-[var(--color-ink-950)]">
+                <h3 className="font-[family-name:var(--font-heading)] text-xl font-semibold text-[var(--color-text-primary)]">
                   {value.title}
                 </h3>
 
-                <p className="mt-2 max-w-xs font-[family-name:var(--font-body)] text-sm leading-relaxed text-neutral-500">
+                <p className="mt-2 max-w-xs font-[family-name:var(--font-body)] text-sm leading-relaxed text-[var(--color-text-muted)]">
                   {value.description}
                 </p>
               </article>

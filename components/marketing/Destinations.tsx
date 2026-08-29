@@ -31,19 +31,19 @@ export default async function Destinations({
   return (
     <section
       aria-label="Destinations"
-      className="bg-[var(--color-surface-alt)] px-6 py-20 sm:py-28"
+      className="min-h-screen bg-[var(--color-surface-alt)] px-6 pt-32 pb-20 sm:pb-28"
     >
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center sm:mb-16">
-          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
             Explore The World
           </span>
 
-          <h1 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-semibold leading-tight tracking-tight text-[var(--color-ink-950)] sm:text-4xl">
+          <h1 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-semibold leading-tight tracking-tight text-[var(--color-text-primary)] sm:text-4xl">
             Destinations
           </h1>
 
-          <p className="mx-auto mt-3 max-w-xl font-[family-name:var(--font-body)] text-base text-neutral-500">
+          <p className="mx-auto mt-3 max-w-xl font-[family-name:var(--font-body)] text-base text-[var(--color-text-muted)]">
             Find the place behind the story.
           </p>
 
@@ -67,10 +67,10 @@ export default async function Destinations({
               return (
                 <section key={continent.slug} aria-label={continent.name}>
                   <div className="mb-8 text-center">
-                    <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--color-ink-950)]">
+                    <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--color-text-primary)]">
                       {continent.name}
                     </h2>
-                    <p className="mt-1 font-[family-name:var(--font-body)] text-sm text-neutral-500">
+                    <p className="mt-1 font-[family-name:var(--font-body)] text-sm text-[var(--color-text-muted)]">
                       {continent.tagline} · {group.length}{" "}
                       {group.length === 1 ? "country" : "countries"}
                     </p>
@@ -83,10 +83,10 @@ export default async function Destinations({
             {uncategorized.length > 0 ? (
               <section aria-label="More places">
                 <div className="mb-8 text-center">
-                  <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--color-ink-950)]">
+                  <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-[var(--color-text-primary)]">
                     More Places
                   </h2>
-                  <p className="mt-1 font-[family-name:var(--font-body)] text-sm text-neutral-500">
+                  <p className="mt-1 font-[family-name:var(--font-body)] text-sm text-[var(--color-text-muted)]">
                     {uncategorized.length}{" "}
                     {uncategorized.length === 1 ? "destination" : "destinations"}
                   </p>

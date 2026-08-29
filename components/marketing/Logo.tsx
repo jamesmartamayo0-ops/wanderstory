@@ -4,7 +4,13 @@ import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Plane } from "lucide-react";
 
-export default function Logo({ className = "" }: { className?: string }) {
+export default function Logo({
+  className = "",
+  overMedia = false,
+}: {
+  className?: string;
+  overMedia?: boolean;
+}) {
   const [isHovered, setIsHovered] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
@@ -20,8 +26,10 @@ export default function Logo({ className = "" }: { className?: string }) {
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
         <motion.div
-          className="absolute inset-0 rounded-full bg-[var(--color-sky-400)] blur-md"
-          animate={{ opacity: isHovered ? 0.45 : 0 }}
+          className="absolute inset-0 rounded-full bg-[var(--color-sky-400)] opacity-0 blur-md"
+          animate={
+            shouldReduceMotion ? undefined : { opacity: isHovered ? 0.45 : 0 }
+          }
           transition={{ duration: 0.3 }}
         />
 
@@ -53,7 +61,13 @@ export default function Logo({ className = "" }: { className?: string }) {
         </motion.div>
       </motion.div>
 
-      <span className="font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight text-neutral-900">
+      <span
+        className={`font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight transition-colors ${
+          overMedia
+            ? "text-[var(--color-text-on-media)]"
+            : "text-[var(--color-text-primary)]"
+        }`}
+      >
         WanderStory
       </span>
     </div>

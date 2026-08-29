@@ -26,10 +26,10 @@ export default function ContinentNav({ activeSlug }: ContinentNavProps) {
             <Link
               href={link.href}
               aria-current={isActive(link.slug) ? "page" : undefined}
-              className={`inline-block rounded-full px-4 py-2 font-[family-name:var(--font-button)] text-sm font-semibold transition-colors ${
+              className={`inline-block rounded-full px-4 py-2 font-[family-name:var(--font-button)] text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-alt)] ${
                 isActive(link.slug)
-                  ? "bg-[var(--color-ocean-600)] text-white"
-                  : "bg-[var(--color-surface)] text-neutral-600 hover:bg-[var(--color-ocean-100)] hover:text-[var(--color-ocean-800)]"
+                  ? "bg-[var(--color-interactive)] text-[var(--color-text-on-media)]"
+                  : "border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-accent)] hover:text-[var(--color-text-link)]"
               }`}
             >
               {link.label}

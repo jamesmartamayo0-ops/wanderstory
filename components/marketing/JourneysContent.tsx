@@ -37,7 +37,7 @@ export default function JourneysContent({ journeys }: JourneysContentProps) {
   if (journeys.length === 0) {
     return (
       <div className="py-16 text-center">
-        <p className="font-[family-name:var(--font-body)] text-neutral-400">
+        <p className="font-[family-name:var(--font-body)] text-[var(--color-text-subtle)]">
           No journeys published yet. Check back soon.
         </p>
       </div>
@@ -56,7 +56,7 @@ export default function JourneysContent({ journeys }: JourneysContentProps) {
         <motion.div key={journey.id} variants={item}>
           <Link
             href={`/journeys/${journey.slug}`}
-            className="block"
+            className="block rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--color-surface-alt)]"
           >
             <JourneyCard journey={journey} />
           </Link>

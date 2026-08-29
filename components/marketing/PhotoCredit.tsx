@@ -14,11 +14,11 @@ export default function PhotoCredit({
 }: PhotoCreditProps) {
   const overlay = variant === "overlay";
   const textClass = overlay
-    ? "text-xs text-white/85 [text-shadow:0_1px_2px_rgba(0,0,0,0.7)]"
-    : "text-xs text-neutral-500";
+    ? "text-xs text-[var(--color-media-caption)] [text-shadow:0_1px_2px_rgba(0,0,0,0.7)]"
+    : "text-xs text-[var(--color-text-muted)]";
   const linkClass = overlay
-    ? "underline decoration-white/40 underline-offset-2 hover:text-white"
-    : "underline decoration-neutral-300 underline-offset-2 hover:text-neutral-800";
+    ? "rounded-sm underline decoration-white/40 underline-offset-2 hover:text-[var(--color-text-on-media)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+    : "rounded-sm underline decoration-[var(--color-border-strong)] underline-offset-2 hover:text-[var(--color-text-link)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]";
 
   return (
     <p className={`${textClass} ${className}`}>

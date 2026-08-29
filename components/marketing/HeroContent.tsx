@@ -93,7 +93,7 @@ export default function HeroContent({
           />
         </motion.div>
 
-        <div className="absolute inset-0 z-20 bg-gradient-to-t from-[var(--color-ink-950)]/85 via-[var(--color-ink-950)]/35 to-[var(--color-ink-950)]/10" />
+        <div className="absolute inset-0 z-20 bg-gradient-to-t from-[var(--color-media-scrim)]/90 via-[var(--color-media-scrim)]/40 to-[var(--color-media-scrim)]/15" />
       </div>
 
       <motion.div
@@ -111,21 +111,21 @@ export default function HeroContent({
 
         <motion.h1
           variants={item}
-          className="max-w-3xl font-[family-name:var(--font-heading)] text-5xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl"
+          className="max-w-3xl font-[family-name:var(--font-heading)] text-5xl font-semibold leading-[1.05] tracking-tight text-[var(--color-text-on-media)] sm:text-6xl lg:text-7xl"
         >
           {headline}
         </motion.h1>
 
         <motion.p
           variants={item}
-          className="max-w-xl font-[family-name:var(--font-body)] text-lg text-white/80 sm:text-xl"
+          className="max-w-xl font-[family-name:var(--font-body)] text-lg text-[var(--color-text-on-media)]/85 sm:text-xl"
         >
           {subheadline}
         </motion.p>
 
         <motion.p
           variants={item}
-          className="max-w-lg font-[family-name:var(--font-body)] text-sm text-white/60 sm:text-base"
+          className="max-w-lg font-[family-name:var(--font-body)] text-sm text-[var(--color-media-caption)] sm:text-base"
         >
           {description}
         </motion.p>
@@ -133,11 +133,11 @@ export default function HeroContent({
         <motion.div variants={item} className="mt-2">
           <Link
             href={ctaHref}
-            className="group inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-ocean-600)] px-7 py-3.5 font-[family-name:var(--font-button)] text-sm font-medium text-white shadow-[var(--shadow-elevated)] transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_12px_40px_rgba(37,99,235,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-ink-950)]"
+            className="group inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-interactive)] px-7 py-3.5 font-[family-name:var(--font-button)] text-sm font-medium text-[var(--color-text-on-media)] shadow-[var(--shadow-elevated)] transition-all duration-300 hover:scale-[1.03] hover:bg-[var(--color-interactive-hover)] hover:shadow-[0_12px_40px_rgba(37,99,235,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-media-scrim)] motion-reduce:transform-none motion-reduce:transition-none"
           >
             {ctaLabel}
             <ArrowRight
-              className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+              className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
               aria-hidden="true"
             />
           </Link>

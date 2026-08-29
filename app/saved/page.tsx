@@ -16,17 +16,17 @@ export default function SavedPage() {
       <main>
         <section
           aria-label="Saved journeys"
-          className="bg-[var(--color-surface-alt)] px-6 py-20 sm:py-28"
+          className="min-h-screen bg-[var(--color-surface-alt)] px-6 pt-32 pb-20 sm:pb-28"
         >
           <div className="mx-auto max-w-6xl">
             <div className="mb-12 text-center">
-              <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+              <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
                 Your Collection
               </span>
-              <h1 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-semibold leading-tight tracking-tight text-[var(--color-ink-950)] sm:text-4xl">
+              <h1 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-semibold leading-tight tracking-tight text-[var(--color-text-primary)] sm:text-4xl">
                 Saved Journeys
               </h1>
-              <p className="mx-auto mt-3 max-w-xl font-[family-name:var(--font-body)] text-base text-neutral-500">
+              <p className="mx-auto mt-3 max-w-xl font-[family-name:var(--font-body)] text-base text-[var(--color-text-muted)]">
                 Stories you have bookmarked for later.
               </p>
             </div>

@@ -48,7 +48,7 @@ export default function DestinationsContent({
   if (destinations.length === 0) {
     return (
       <div className="py-16 text-center">
-        <p className="font-[family-name:var(--font-body)] text-neutral-400">
+        <p className="font-[family-name:var(--font-body)] text-[var(--color-text-subtle)]">
           No destinations available yet. Check back soon.
         </p>
       </div>

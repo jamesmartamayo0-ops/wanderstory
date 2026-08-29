@@ -7,7 +7,7 @@ import HowItWorks from "@/components/marketing/HowItWorks";
 export default function Home() {
   return (
     <>
-      <Navbar />
+      <Navbar overMedia />
 
       <main>
         <Hero />

@@ -16,10 +16,10 @@ export default function GalleryBlock({ gallery }: GalleryBlockProps) {
     >
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center">
-          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
             Gallery
           </span>
-          <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[var(--color-ink-950)] sm:text-3xl">
+          <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-3xl">
             Photo Gallery
           </h2>
         </div>

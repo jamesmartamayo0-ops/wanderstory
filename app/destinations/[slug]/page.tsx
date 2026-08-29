@@ -63,7 +63,7 @@ export default async function DestinationPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
-      <Navbar />
+      <Navbar overMedia />
       <main>
         <DestinationDetail destination={destination} />
       </main>

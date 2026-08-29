@@ -52,7 +52,7 @@ export default function FeaturedDestinationsContent({
         <motion.div key={dest.id} variants={item}>
           <Link
             href={`/destinations/${dest.slug}`}
-            className="block"
+            className="block rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--color-surface-alt)]"
           >
             <DestinationCard destination={dest} />
           </Link>

@@ -19,10 +19,10 @@ export default function DestinationDirectoryCard({
   const isFeature = variant === "feature";
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-elevated)] transition-shadow duration-300 hover:shadow-lg">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] shadow-[var(--shadow-elevated)] transition-shadow duration-300 hover:shadow-lg motion-reduce:transition-none">
       <Link
         href={`/destinations/${destination.slug}`}
-        className="flex flex-1 flex-col"
+        className="flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-focus-ring)]"
       >
         <div
           className={`relative overflow-hidden ${
@@ -38,11 +38,11 @@ export default function DestinationDirectoryCard({
                 ? "(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 67vw"
                 : "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             }
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none"
           />
 
           {continent ? (
-            <span className="absolute top-3 left-3 rounded-full bg-[var(--color-ink-950)]/70 px-3 py-1 font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm">
+            <span className="absolute top-3 left-3 rounded-full bg-[var(--color-media-scrim)]/75 px-3 py-1 font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-on-media)] backdrop-blur-sm">
               {continent.name}
             </span>
           ) : null}
@@ -50,16 +50,16 @@ export default function DestinationDirectoryCard({
 
         <div className="flex flex-1 flex-col gap-2 p-5">
           {destination.featuredPlace ? (
-            <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-sunset-500)]">
+            <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-accent)]">
               {destination.featuredPlace}
             </span>
           ) : null}
 
-          <h3 className="font-[family-name:var(--font-heading)] text-lg font-semibold leading-snug text-[var(--color-ink-950)]">
+          <h3 className="font-[family-name:var(--font-heading)] text-lg font-semibold leading-snug text-[var(--color-text-primary)]">
             {destination.title}
           </h3>
 
-          <p className="font-[family-name:var(--font-body)] text-sm leading-relaxed text-neutral-500">
+          <p className="font-[family-name:var(--font-body)] text-sm leading-relaxed text-[var(--color-text-muted)]">
             {destination.description}
           </p>
         </div>

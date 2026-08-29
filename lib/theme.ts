@@ -43,7 +43,12 @@ export function applyTheme(effective: "light" | "dark") {
   try {
     document.documentElement.dataset.theme = effective;
   } catch {
-    // Never throw — theme application must be failure-proof.
+    // Theme application must remain failure-proof.
+  }
+  try {
+    document.documentElement.style.colorScheme = effective;
+  } catch {
+    // Native controls can fall back independently if this assignment fails.
   }
 }
 
@@ -51,7 +56,6 @@ export function storeTheme(preference: ThemePreference) {
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, preference);
   } catch {
-    // Storage may be unavailable (private mode, disabled cookies) —
-    // the in-memory preference still applies for this session.
+    // Storage may be unavailable; the already-applied document theme remains.
   }
 }

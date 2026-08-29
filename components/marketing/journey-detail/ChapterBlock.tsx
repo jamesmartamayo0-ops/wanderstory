@@ -16,10 +16,10 @@ export default function ChapterBlock({ chapters }: ChapterBlockProps) {
     >
       <div className="mx-auto max-w-3xl">
         <div className="mb-12">
-          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
             The Story
           </span>
-          <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[var(--color-ink-950)] sm:text-3xl">
+          <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-3xl">
             Chapters
           </h2>
         </div>
@@ -27,20 +27,20 @@ export default function ChapterBlock({ chapters }: ChapterBlockProps) {
         <ChapterAnimationWrapper>
           {chapters.map((chapter) => (
             <article key={chapter.id} className="space-y-6">
-              <h3 className="font-[family-name:var(--font-heading)] text-xl font-semibold text-[var(--color-ink-950)] sm:text-2xl">
-                <span className="text-[var(--color-ocean-500)]">
+              <h3 className="font-[family-name:var(--font-heading)] text-xl font-semibold text-[var(--color-text-primary)] sm:text-2xl">
+                <span className="text-[var(--color-text-link)]">
                   {String(chapter.order).padStart(2, "0")}.
                 </span>{" "}
                 {chapter.title}
               </h3>
 
               {chapter.location && (
-                <p className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+                <p className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
                   {chapter.location}
                 </p>
               )}
 
-              <div className="prose prose-neutral max-w-none font-[family-name:var(--font-body)] text-base leading-relaxed text-[var(--color-ink-950)]/80">
+              <div className="max-w-none space-y-4 font-[family-name:var(--font-body)] text-base leading-relaxed text-[var(--color-text-secondary)]">
                 {chapter.content.split("\n").map((paragraph, i) => (
                   <p key={i}>{paragraph}</p>
                 ))}

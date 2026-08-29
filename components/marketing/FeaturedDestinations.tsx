@@ -8,20 +8,21 @@ export default async function FeaturedDestinations() {
 
   return (
     <section
+      id="explore"
       aria-label="Featured destinations"
-      className="bg-[var(--color-surface-alt)] px-6 py-20 sm:py-28"
+      className="scroll-mt-24 bg-[var(--color-surface-alt)] px-6 py-20 sm:py-28"
     >
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center sm:mb-16">
-          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-sunset-400)]">
+          <span className="font-[family-name:var(--font-button)] text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-accent)]">
             Curated Places
           </span>
 
-          <h2 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-semibold leading-tight tracking-tight text-[var(--color-ink-950)] sm:text-4xl">
+          <h2 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-semibold leading-tight tracking-tight text-[var(--color-text-primary)] sm:text-4xl">
             Featured Destinations
           </h2>
 
-          <p className="mx-auto mt-3 max-w-xl font-[family-name:var(--font-body)] text-base text-neutral-500">
+          <p className="mx-auto mt-3 max-w-xl font-[family-name:var(--font-body)] text-base text-[var(--color-text-muted)]">
             Handpicked places that define what it means to wander — each one
             chosen for its story, its silence, and its sense of wonder.
           </p>
