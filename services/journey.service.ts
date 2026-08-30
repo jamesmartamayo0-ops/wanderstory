@@ -139,13 +139,22 @@ export async function updateJourney(
   }
 }
 
-export async function deleteJourney(id: string): Promise<ActionResult> {
+type DeletedJourneyData = {
+  slug: string;
+  destinationSlug: string;
+};
+
+export async function deleteJourney(
+  id: string
+): Promise<ActionResult<DeletedJourneyData>> {
   try {
     // Collect Cloudinary provider IDs before the database cascade removes media rows.
     const journey = await prisma.journey.findUnique({
       where: { id },
       select: {
         id: true,
+        slug: true,
+        destination: { select: { slug: true } },
         media: { select: { providerId: true } },
         chapters: {
           select: { media: { select: { providerId: true } } },
@@ -165,7 +174,13 @@ export async function deleteJourney(id: string): Promise<ActionResult> {
     await prisma.journey.delete({ where: { id } });
     await purgeMediaAssets(providerIds);
 
-    return { success: true };
+    return {
+      success: true,
+      data: {
+        slug: journey.slug,
+        destinationSlug: journey.destination.slug,
+      },
+    };
   } catch {
     return { success: false, error: "Failed to delete journey" };
   }

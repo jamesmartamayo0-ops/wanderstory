@@ -2,6 +2,7 @@
 
 import { requirePermission } from "@/lib/authz";
 import { auditFromRequest } from "@/lib/audit";
+import { revalidateJourneyPaths } from "@/lib/revalidate";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -135,7 +136,16 @@ export async function deleteJourney(id: string): Promise<ActionResult> {
       targetType: "JOURNEY",
       targetId: id,
     });
-    revalidatePath("/admin/journeys");
+    revalidateJourneyPaths(
+      id,
+      result.data
+        ? {
+            journeySlug: result.data.slug,
+            destinationSlug: result.data.destinationSlug,
+          }
+        : undefined
+    );
+    revalidatePath("/sitemap.xml");
   }
   return result;
 }
