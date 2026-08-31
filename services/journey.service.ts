@@ -155,9 +155,9 @@ export async function deleteJourney(
         id: true,
         slug: true,
         destination: { select: { slug: true } },
-        media: { select: { providerId: true } },
+        media: { select: { providerId: true, type: true } },
         chapters: {
-          select: { media: { select: { providerId: true } } },
+          select: { media: { select: { providerId: true, type: true } } },
         },
       },
     });
@@ -166,13 +166,13 @@ export async function deleteJourney(
       return { success: false, error: "Journey not found" };
     }
 
-    const providerIds = [
-      ...journey.media.map((m) => m.providerId),
-      ...journey.chapters.flatMap((c) => c.media.map((m) => m.providerId)),
+    const providerAssets = [
+      ...journey.media,
+      ...journey.chapters.flatMap((chapter) => chapter.media),
     ];
 
     await prisma.journey.delete({ where: { id } });
-    await purgeMediaAssets(providerIds);
+    await purgeMediaAssets(providerAssets);
 
     return {
       success: true,

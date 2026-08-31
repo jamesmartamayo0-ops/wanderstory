@@ -8,6 +8,7 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "test:mf2": "node --experimental-test-module-mocks --import tsx --test tests/*.test.ts",
     "security:maintain": "tsx scripts/security-maintenance.ts",
     "destinations:ingest": "tsx scripts/destinations/ingest.mts",
     "destinations:verify": "tsx scripts/destinations/verify.mts"
@@ -18,7 +19,6 @@
     "argon2": "^0.44.0",
     "cloudinary": "^2.10.0",
     "dotenv": "^17.4.2",
-    "file-type": "^22.0.1",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.24.0",
     "next": "^16.2.11",

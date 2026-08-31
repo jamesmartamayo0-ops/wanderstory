@@ -9,11 +9,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "25mb",
-    },
-  },
   async headers() {
     const isDev = process.env.NODE_ENV === "development";
     return [
@@ -40,7 +35,7 @@ const nextConfig: NextConfig = {
               `default-src 'self'; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; ` +
               "style-src 'self' 'unsafe-inline'; " +
               "img-src 'self' data: https://res.cloudinary.com; font-src 'self' data:; " +
-              "connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+              "connect-src 'self' https://api.cloudinary.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
           },
         ],
       },

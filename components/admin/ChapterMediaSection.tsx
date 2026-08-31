@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+import { finalizeChapterMediaUpload } from "@/actions/media.actions";
 import Button from "@/components/ui/Button";
 import FileUpload from "@/components/ui/FileUpload";
+import { useDirectMediaUpload } from "@/lib/hooks/useDirectMediaUpload";
+import { getClientFileValidationError } from "@/lib/validation/media-upload.schema";
+import type {
+  MediaUploadActionResult,
+  MediaUploadAuthorizationBundle,
+} from "@/services/storage/storage.types";
 import ConfirmDeleteButton from "./ConfirmDeleteButton";
 import MediaPickerMulti from "./MediaPickerMulti";
 
@@ -24,7 +32,11 @@ export type LibraryMediaItem = {
 };
 
 export type ChapterMediaActions = {
-  uploadAction: (formData: FormData) => void;
+  uploadAction: (declaration: {
+    fileName: string;
+    mimeType: string;
+    size: number;
+  }) => Promise<MediaUploadActionResult<MediaUploadAuthorizationBundle>>;
   attachAction: (formData: FormData) => void;
   removeAction: (formData: FormData) => void;
   deleteAction: (formData: FormData) => void;
@@ -43,11 +55,19 @@ export default function ChapterMediaSection({
   libraryMedia,
   actions,
 }: ChapterMediaSectionProps) {
+  const router = useRouter();
   const [orderIds, setOrderIds] = useState<string[]>(
     [...medias].sort((a, b) => a.order - b.order).map((m) => m.id)
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const onUploadSuccess = useCallback(() => router.refresh(), [router]);
+  const upload = useDirectMediaUpload({
+    purpose: "ch",
+    signAction: actions.uploadAction,
+    finalizeAction: finalizeChapterMediaUpload,
+    onSuccess: onUploadSuccess,
+  });
 
   const byId = new Map(medias.map((m) => [m.id, m]));
   const orderedMedias = orderIds
@@ -218,16 +238,65 @@ export default function ChapterMediaSection({
           )}
         </form>
 
-        <form action={actions.uploadAction} className="space-y-2">
+        <div className="space-y-2">
           <FileUpload
             accept="image/jpeg,image/png,image/webp"
             maxSizeMB={20}
+            value={upload.file}
+            onFileChange={upload.selectFile}
+            validateFile={(file) => getClientFileValidationError(file, "ch")?.message ?? null}
+            disabled={upload.active}
             label="Upload new image"
           />
-          <Button type="submit" variant="primary" size="sm">
-            Upload to Chapter
-          </Button>
-        </form>
+          {upload.status === "uploading" && (
+            <div className="space-y-1" aria-live="polite">
+              <div className="h-1.5 overflow-hidden rounded-full bg-neutral-200">
+                <div
+                  className="h-full bg-blue-600 transition-[width]"
+                  style={{ width: `${upload.progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-neutral-500">Uploading directly: {upload.progress}%</p>
+            </div>
+          )}
+          {upload.error && (
+            <div className="rounded bg-red-50 px-2 py-1.5 text-xs text-red-700" role="alert">
+              <p>{upload.error.message}</p>
+              <p className="mt-0.5 text-red-500">Error: {upload.error.code}</p>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={upload.active || (!upload.file && !upload.canRetryFinalization)}
+              onClick={() => void upload.start()}
+            >
+              {upload.canRetryFinalization
+                ? "Retry finalization"
+                : upload.status === "authorizing"
+                  ? "Authorizing..."
+                  : upload.status === "uploading"
+                    ? `Uploading ${upload.progress}%`
+                    : upload.status === "finalizing"
+                      ? "Finalizing..."
+                      : upload.status === "error" && upload.file
+                        ? "Retry upload"
+                        : "Upload to Chapter"}
+            </Button>
+            {upload.active && (
+              <Button type="button" variant="secondary" size="sm" onClick={upload.cancel}>
+                Cancel
+              </Button>
+            )}
+            {!upload.active && upload.file && (
+              <Button type="button" variant="ghost" size="sm" onClick={upload.reset}>
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       {pickerOpen && (

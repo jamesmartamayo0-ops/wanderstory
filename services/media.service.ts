@@ -1,7 +1,16 @@
 import prisma from "../lib/prisma";
 import { cloudinaryProvider } from "./storage/cloudinary.provider";
 import { verifyChapterOwnership } from "./chapter.service";
-import type { UploadResult } from "./storage/storage.types";
+import type {
+  AuthoritativeProviderResource,
+  MediaUploadActionResult,
+} from "./storage/storage.types";
+import {
+  MEDIA_UPLOAD_LIMITS,
+  type MediaUploadAuthorization,
+  type MediaUploadPurpose,
+} from "../lib/validation/media-upload.schema";
+import type { MediaType } from "../app/generated/prisma/enums";
 import type { UpdateMediaInput, MediaFilterInput } from "../lib/validation/media.schema";
 import type { ActionResult } from "../types";
 
@@ -35,59 +44,308 @@ export async function getMediaById(id: string) {
   });
 }
 
-export async function uploadMedia(
-  file: Buffer,
-  metadata: {
-    fileName: string;
-    mimeType: string;
-    size: number;
-    format: string;
-    type: string;
-    uploaderId: string;
+type VerifiedMediaData = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  type: MediaType;
+  format: string;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  provider: "CLOUDINARY";
+  providerId: string;
+  url: string;
+  thumbnailUrl: string | null;
+  blurDataUrl: string | null;
+  role: "GALLERY" | "CHAPTER";
+  uploaderId: string;
+  chapterId: string | null;
+};
+
+class MediaPolicyError extends Error {}
+
+function authoritativeFormatPolicy(
+  resource: AuthoritativeProviderResource,
+  purpose: MediaUploadPurpose,
+): { mimeType: string; mediaType: MediaType; maximumBytes: number } {
+  const mapping: Record<
+    string,
+    { mimeType: string; mediaType: MediaType; resourceType: "image" | "video"; maximumBytes: number }
+  > = {
+    jpg: {
+      mimeType: "image/jpeg",
+      mediaType: "IMAGE",
+      resourceType: "image",
+      maximumBytes: MEDIA_UPLOAD_LIMITS.image,
+    },
+    jpeg: {
+      mimeType: "image/jpeg",
+      mediaType: "IMAGE",
+      resourceType: "image",
+      maximumBytes: MEDIA_UPLOAD_LIMITS.image,
+    },
+    png: {
+      mimeType: "image/png",
+      mediaType: "IMAGE",
+      resourceType: "image",
+      maximumBytes: MEDIA_UPLOAD_LIMITS.image,
+    },
+    webp: {
+      mimeType: "image/webp",
+      mediaType: "IMAGE",
+      resourceType: "image",
+      maximumBytes: MEDIA_UPLOAD_LIMITS.image,
+    },
+    pdf: {
+      mimeType: "application/pdf",
+      mediaType: "DOCUMENT",
+      resourceType: "image",
+      maximumBytes: MEDIA_UPLOAD_LIMITS.document,
+    },
+    mp4: {
+      mimeType: "video/mp4",
+      mediaType: "VIDEO",
+      resourceType: "video",
+      maximumBytes: MEDIA_UPLOAD_LIMITS.video,
+    },
+  };
+  const policy = mapping[resource.format];
+
+  if (!policy || policy.resourceType !== resource.resourceType) {
+    throw new MediaPolicyError("Unexpected provider format");
   }
-): Promise<ActionResult> {
-  let uploadResult: UploadResult | null = null;
+  if (purpose === "ch" && policy.mediaType !== "IMAGE") {
+    throw new MediaPolicyError("Chapter uploads must be images");
+  }
+  if (resource.bytes > policy.maximumBytes) {
+    throw new MediaPolicyError("Provider resource exceeds the upload limit");
+  }
+  if (
+    policy.mediaType === "IMAGE" &&
+    (!resource.width || resource.width <= 0 || !resource.height || resource.height <= 0)
+  ) {
+    throw new MediaPolicyError("Provider image dimensions are invalid");
+  }
+  if (policy.mediaType === "VIDEO" && (!resource.duration || resource.duration <= 0)) {
+    throw new MediaPolicyError("Provider video duration is invalid");
+  }
 
+  return policy;
+}
+
+export function buildVerifiedMediaData(
+  authorization: MediaUploadAuthorization,
+  resource: AuthoritativeProviderResource,
+  uploaderId: string,
+): VerifiedMediaData {
+  const policy = authoritativeFormatPolicy(resource, authorization.purpose);
+  const originalFilename = resource.originalFilename ?? authorization.uploadId;
+  const extension = resource.format === "jpeg" ? "jpg" : resource.format;
+  const fileName = originalFilename.toLowerCase().endsWith(`.${extension}`)
+    ? originalFilename
+    : `${originalFilename}.${extension}`;
+  const derivatives = policy.mediaType === "IMAGE"
+    ? cloudinaryProvider.getImageDerivativeUrls(resource.publicId)
+    : null;
+
+  return {
+    id: authorization.uploadId,
+    fileName,
+    mimeType: policy.mimeType,
+    size: resource.bytes,
+    type: policy.mediaType,
+    format: resource.format,
+    width: resource.width,
+    height: resource.height,
+    duration: resource.duration === null ? null : Math.round(resource.duration),
+    provider: "CLOUDINARY",
+    providerId: resource.publicId,
+    url: resource.secureUrl,
+    thumbnailUrl: derivatives?.thumbnailUrl ?? null,
+    blurDataUrl: derivatives?.blurDataUrl ?? null,
+    role: authorization.purpose === "ch" ? "CHAPTER" : "GALLERY",
+    uploaderId,
+    chapterId: authorization.purpose === "ch" ? authorization.chapterId : null,
+  };
+}
+
+function isPrimaryKeyConflict(error: unknown): boolean {
+  if (!error || typeof error !== "object" || !("code" in error) || error.code !== "P2002") {
+    return false;
+  }
+  const meta = "meta" in error && error.meta && typeof error.meta === "object"
+    ? error.meta as Record<string, unknown>
+    : null;
+  const target = meta?.target;
+  if (Array.isArray(target)) return target.length === 1 && target[0] === "id";
+  return target === "id" || target === "Media_pkey";
+}
+
+function nullableEqual(left: unknown, right: unknown): boolean {
+  return (left ?? null) === (right ?? null);
+}
+
+function existingMediaMatches(
+  existing: Record<string, unknown>,
+  expected: VerifiedMediaData,
+): boolean {
+  return (
+    existing.id === expected.id &&
+    existing.fileName === expected.fileName &&
+    existing.mimeType === expected.mimeType &&
+    existing.size === expected.size &&
+    existing.type === expected.type &&
+    existing.format === expected.format &&
+    nullableEqual(existing.width, expected.width) &&
+    nullableEqual(existing.height, expected.height) &&
+    nullableEqual(existing.duration, expected.duration) &&
+    existing.provider === expected.provider &&
+    existing.providerId === expected.providerId &&
+    existing.url === expected.url &&
+    nullableEqual(existing.thumbnailUrl, expected.thumbnailUrl) &&
+    nullableEqual(existing.blurDataUrl, expected.blurDataUrl) &&
+    existing.uploaderId === expected.uploaderId &&
+    existing.role === expected.role &&
+    nullableEqual(existing.chapterId, expected.chapterId)
+  );
+}
+
+async function cleanupOnlyWhenNoMediaRow(
+  uploadId: string,
+  resource: AuthoritativeProviderResource,
+  mediaType: MediaType,
+): Promise<void> {
   try {
-    uploadResult = await cloudinaryProvider.upload(file, {
-      fileName: metadata.fileName,
-      mimeType: metadata.mimeType,
-      folder: "wanderstory",
-    });
+    const existing = await prisma.media.findUnique({ where: { id: uploadId } });
+    if (existing) return;
+  } catch (error) {
+    console.error("Media cleanup skipped because database state is ambiguous:", error);
+    return;
+  }
 
-    const media = await prisma.media.create({
+  const deleted = await cloudinaryProvider.delete(resource.publicId, mediaType);
+  if (!deleted) {
+    console.error("Verified Cloudinary cleanup failed for:", resource.publicId);
+  }
+}
+
+export async function finalizeVerifiedMediaUpload(
+  authorization: MediaUploadAuthorization,
+  resource: AuthoritativeProviderResource,
+  uploaderId: string,
+): Promise<MediaUploadActionResult<{ mediaId: string; created: boolean }>> {
+  if (
+    resource.publicId !== authorization.expectedPublicId ||
+    resource.resourceType !== authorization.resourceType ||
+    resource.deliveryType !== "upload" ||
+    resource.context.wsid !== authorization.uploadId ||
+    resource.context.wsp !== authorization.purpose
+  ) {
+    return {
+      success: false,
+      error: { code: "INVALID_PROVIDER_PROOF", message: "The uploaded asset could not be verified" },
+    };
+  }
+
+  let data: VerifiedMediaData;
+  try {
+    data = buildVerifiedMediaData(authorization, resource, uploaderId);
+  } catch (error) {
+    if (error instanceof MediaPolicyError) {
+      const cleanupType: MediaType = resource.resourceType === "video" ? "VIDEO" : "IMAGE";
+      await cleanupOnlyWhenNoMediaRow(authorization.uploadId, resource, cleanupType);
+      return {
+        success: false,
+        error: { code: "PROVIDER_REJECTED", message: "The uploaded file does not meet the media policy" },
+      };
+    }
+    return {
+      success: false,
+      error: { code: "FINALIZATION_FAILED", message: "Media finalization failed" },
+    };
+  }
+
+  if (authorization.purpose === "ch") {
+    try {
+      if (!(await verifyChapterOwnership(authorization.journeyId, authorization.chapterId))) {
+        return {
+          success: false,
+          error: { code: "FORBIDDEN", message: "The chapter upload target is no longer available" },
+        };
+      }
+    } catch (error) {
+      console.error("Chapter finalization relationship check failed:", error);
+      return {
+        success: false,
+        error: { code: "FINALIZATION_FAILED", message: "The chapter upload target could not be confirmed" },
+      };
+    }
+  }
+
+  let order = 0;
+  try {
+    if (authorization.purpose === "ch") {
+      const maxOrder = await prisma.media.aggregate({
+        where: { chapterId: authorization.chapterId },
+        _max: { order: true },
+      });
+      order = (maxOrder._max.order ?? -1) + 1;
+    }
+
+    await prisma.media.create({
       data: {
-        fileName: metadata.fileName,
-        mimeType: metadata.mimeType,
-        size: metadata.size,
-        type: metadata.type as "IMAGE" | "VIDEO" | "DOCUMENT",
-        format: uploadResult.format ?? metadata.format,
-        width: uploadResult.width ?? null,
-        height: uploadResult.height ?? null,
-        duration: uploadResult.duration ?? null,
-        provider: "CLOUDINARY",
-        providerId: uploadResult.providerId,
-        url: uploadResult.url,
-        thumbnailUrl: uploadResult.thumbnailUrl ?? null,
-        blurDataUrl: uploadResult.blurDataUrl ?? null,
-        role: "GALLERY",
-        uploaderId: metadata.uploaderId,
+        ...data,
+        order,
       },
     });
-
-    return { success: true, data: media };
+    return { success: true, data: { mediaId: data.id, created: true } };
   } catch (error) {
-    console.error("Upload failed:", error);
-
-    if (uploadResult?.providerId) {
+    if (isPrimaryKeyConflict(error)) {
       try {
-        await cloudinaryProvider.delete(uploadResult.providerId);
-      } catch {
-        // cleanup failure is non-fatal; original error takes priority
+        const existing = await prisma.media.findUnique({ where: { id: data.id } });
+        if (existing && existingMediaMatches(existing, data)) {
+          return { success: true, data: { mediaId: data.id, created: false } };
+        }
+        return {
+          success: false,
+          error: { code: "UPLOAD_CONFLICT", message: "This upload conflicts with an existing media record" },
+        };
+      } catch (readError) {
+        console.error("Media idempotency check failed:", readError);
+        return {
+          success: false,
+          error: { code: "FINALIZATION_FAILED", message: "Media finalization could not be confirmed" },
+        };
       }
     }
 
-    return { success: false, error: "Failed to upload media" };
+    try {
+      const existing = await prisma.media.findUnique({ where: { id: data.id } });
+      if (existing) {
+        if (existingMediaMatches(existing, data)) {
+          return { success: true, data: { mediaId: data.id, created: false } };
+        }
+        return {
+          success: false,
+          error: { code: "UPLOAD_CONFLICT", message: "This upload conflicts with an existing media record" },
+        };
+      }
+    } catch (readError) {
+      console.error("Media persistence outcome is ambiguous; cleanup skipped:", readError);
+      return {
+        success: false,
+        error: { code: "FINALIZATION_FAILED", message: "Media finalization could not be confirmed" },
+      };
+    }
+
+    console.error("Media persistence failed:", error);
+    await cleanupOnlyWhenNoMediaRow(data.id, resource, data.type);
+    return {
+      success: false,
+      error: { code: "FINALIZATION_FAILED", message: "Media finalization failed" },
+    };
   }
 }
 
@@ -99,7 +357,7 @@ export async function deleteMedia(id: string): Promise<ActionResult> {
     }
 
     if (media.providerId) {
-      const deleted = await cloudinaryProvider.delete(media.providerId);
+      const deleted = await cloudinaryProvider.delete(media.providerId, media.type);
       if (!deleted) {
         console.warn("Storage cleanup returned false for:", media.providerId);
       }
@@ -128,85 +386,15 @@ export async function updateMedia(
 }
 
 export async function purgeMediaAssets(
-  providerIds: Array<string | null>
+  providerAssets: Array<{ providerId: string | null; type: MediaType }>
 ): Promise<void> {
-  for (const providerId of providerIds) {
-    if (!providerId) continue;
+  for (const asset of providerAssets) {
+    if (!asset.providerId) continue;
     try {
-      await cloudinaryProvider.delete(providerId);
+      await cloudinaryProvider.delete(asset.providerId, asset.type);
     } catch {
       // best-effort storage cleanup; failures are non-fatal
     }
-  }
-}
-
-export async function uploadChapterMedia(
-  file: Buffer,
-  metadata: {
-    journeyId: string;
-    chapterId: string;
-    fileName: string;
-    mimeType: string;
-    size: number;
-    format: string;
-    type: string;
-    uploaderId: string;
-  }
-): Promise<ActionResult> {
-  if (!(await verifyChapterOwnership(metadata.journeyId, metadata.chapterId))) {
-    return { success: false, error: "Chapter not found" };
-  }
-
-  let uploadResult: UploadResult | null = null;
-
-  try {
-    const maxOrder = await prisma.media.aggregate({
-      where: { chapterId: metadata.chapterId },
-      _max: { order: true },
-    });
-    const nextOrder = (maxOrder._max.order ?? -1) + 1;
-
-    uploadResult = await cloudinaryProvider.upload(file, {
-      fileName: metadata.fileName,
-      mimeType: metadata.mimeType,
-      folder: "wanderstory",
-    });
-
-    const media = await prisma.media.create({
-      data: {
-        fileName: metadata.fileName,
-        mimeType: metadata.mimeType,
-        size: metadata.size,
-        type: metadata.type as "IMAGE" | "VIDEO" | "DOCUMENT",
-        format: uploadResult.format ?? metadata.format,
-        width: uploadResult.width ?? null,
-        height: uploadResult.height ?? null,
-        duration: uploadResult.duration ?? null,
-        provider: "CLOUDINARY",
-        providerId: uploadResult.providerId,
-        url: uploadResult.url,
-        thumbnailUrl: uploadResult.thumbnailUrl ?? null,
-        blurDataUrl: uploadResult.blurDataUrl ?? null,
-        role: "CHAPTER",
-        chapterId: metadata.chapterId,
-        order: nextOrder,
-        uploaderId: metadata.uploaderId,
-      },
-    });
-
-    return { success: true, data: media };
-  } catch (error) {
-    console.error("Upload failed:", error);
-
-    if (uploadResult?.providerId) {
-      try {
-        await cloudinaryProvider.delete(uploadResult.providerId);
-      } catch {
-        // cleanup failure is non-fatal; original error takes priority
-      }
-    }
-
-    return { success: false, error: "Failed to upload chapter media" };
   }
 }
 
@@ -374,7 +562,7 @@ export async function deleteMediaPermanently(
     }
 
     if (media.providerId) {
-      const deleted = await cloudinaryProvider.delete(media.providerId);
+      const deleted = await cloudinaryProvider.delete(media.providerId, media.type);
       if (!deleted) {
         console.warn("Storage cleanup returned false for:", media.providerId);
       }

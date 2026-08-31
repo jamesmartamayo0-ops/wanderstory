@@ -88,7 +88,7 @@ export async function deleteChapter(
     // Collect Cloudinary provider IDs before the database cascade removes media rows.
     const media = await prisma.media.findMany({
       where: { chapterId },
-      select: { providerId: true },
+      select: { providerId: true, type: true },
     });
 
     const result = await prisma.chapter.deleteMany({
@@ -103,7 +103,7 @@ export async function deleteChapter(
     for (const item of media) {
       if (!item.providerId) continue;
       try {
-        await cloudinaryProvider.delete(item.providerId);
+        await cloudinaryProvider.delete(item.providerId, item.type);
       } catch {
         // ignore — orphan asset will be handled by a future cleanup task
       }

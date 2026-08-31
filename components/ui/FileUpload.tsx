@@ -1,31 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type FileUploadProps = {
   accept?: string;
   maxSizeMB?: number;
+  value: File | null;
   onFileChange?: (file: File | null) => void;
   label?: string;
+  disabled?: boolean;
+  validateFile?: (file: File) => string | null;
 };
 
 export default function FileUpload({
   accept = "image/jpeg,image/png,image/webp,video/mp4,application/pdf",
   maxSizeMB = 20,
+  value,
   onFileChange,
   label = "Upload a file",
+  disabled = false,
+  validateFile,
 }: FileUploadProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!value || !value.type.startsWith("image/")) {
+      setPreview(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(value);
+    setPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [value]);
+
+  useEffect(() => {
+    if (!value && inputRef.current) inputRef.current.value = "";
+  }, [value]);
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setError(null);
 
     if (!file) {
-      setPreview(null);
-      setFileName(null);
       onFileChange?.(null);
       return;
     }
@@ -33,40 +51,42 @@ export default function FileUpload({
     const maxBytes = maxSizeMB * 1024 * 1024;
     if (file.size > maxBytes) {
       setError(`File too large. Maximum size is ${maxSizeMB}MB.`);
-      setPreview(null);
-      setFileName(null);
+      e.target.value = "";
       onFileChange?.(null);
       return;
     }
-
-    if (file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = () => setPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    } else {
-      setPreview(null);
+    const validationError = validateFile?.(file);
+    if (validationError) {
+      setError(validationError);
+      e.target.value = "";
+      onFileChange?.(null);
+      return;
     }
-
-    setFileName(file.name);
     onFileChange?.(file);
   }
 
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium">{label}</label>
-      <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-50 p-6 hover:border-blue-400 hover:bg-blue-50">
+      <label
+        className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-50 p-6 ${
+          disabled
+            ? "cursor-not-allowed opacity-60"
+            : "cursor-pointer hover:border-blue-400 hover:bg-blue-50"
+        }`}
+      >
         {preview ? (
           <img
             src={preview}
             alt="Preview"
             className="mb-2 max-h-48 rounded object-contain"
           />
-        ) : fileName ? (
+        ) : value ? (
           <div className="mb-2 flex items-center gap-2 text-sm text-neutral-600">
             <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
-            <span>{fileName}</span>
+            <span>{value.name}</span>
           </div>
         ) : (
           <>
@@ -83,10 +103,11 @@ export default function FileUpload({
           </>
         )}
         <input
-          name="file"
+          ref={inputRef}
           type="file"
           accept={accept}
           onChange={handleFile}
+          disabled={disabled}
           className="hidden"
         />
       </label>
