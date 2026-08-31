@@ -99,11 +99,18 @@ export async function updateJourney(
     const updateData: Record<string, unknown> = { ...data };
 
     if (data.title) {
-      const baseSlug = generateSlug(data.title);
-      updateData.slug = await ensureUniqueSlug(baseSlug, (s) =>
-        prisma.journey.findUnique({ where: { slug: s } }),
-        id
-      );
+      const existingJourney = await prisma.journey.findUnique({
+        where: { id },
+        select: { publishedAt: true },
+      });
+
+      if (existingJourney?.publishedAt === null) {
+        const baseSlug = generateSlug(data.title);
+        updateData.slug = await ensureUniqueSlug(baseSlug, (s) =>
+          prisma.journey.findUnique({ where: { slug: s } }),
+          id
+        );
+      }
     }
 
     const { categoryIds: _, ...restData } = updateData as Record<string, unknown>;
