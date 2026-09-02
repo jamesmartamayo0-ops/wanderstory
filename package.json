@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:mf2": "node --experimental-test-module-mocks --import tsx --test tests/*.test.ts",
+    "test:mf3": "node --experimental-test-module-mocks --import tsx --test tests/social-sharing.test.ts tests/journey-sharing-boundary.test.ts tests/journey-media-trust.test.ts tests/journey-public-media-boundary.test.ts tests/saved-journeys-storage.test.ts",
     "security:maintain": "tsx scripts/security-maintenance.ts",
     "destinations:ingest": "tsx scripts/destinations/ingest.mts",
     "destinations:verify": "tsx scripts/destinations/verify.mts"

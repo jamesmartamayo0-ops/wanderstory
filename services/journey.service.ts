@@ -8,6 +8,7 @@ import type {
 } from "../lib/validation/journey.schema";
 import type { ActionResult } from "../types";
 import { purgeMediaAssets } from "./media.service";
+import { isTrustedJourneyImageMedia } from "../lib/journey-media-trust";
 
 export type JourneyFilters = {
   status?: JourneyStatusValue;
@@ -17,6 +18,48 @@ export type JourneyFilters = {
 };
 
 export type JourneyVisibilityValue = (typeof JourneyVisibility)[keyof typeof JourneyVisibility];
+
+type JourneyMediaAssignments = {
+  coverMediaId?: string | null;
+  ogImageId?: string | null;
+};
+
+class JourneyMediaTrustError extends Error {}
+
+async function validateJourneyMediaAssignments({
+  coverMediaId,
+  ogImageId,
+}: JourneyMediaAssignments): Promise<void> {
+  const requestedIds = [...new Set(
+    [coverMediaId, ogImageId].filter(
+      (mediaId): mediaId is string => typeof mediaId === "string" && mediaId !== "",
+    ),
+  )];
+
+  if (requestedIds.length === 0) return;
+
+  const mediaRows = await prisma.media.findMany({
+    where: { id: { in: requestedIds } },
+    select: {
+      id: true,
+      provider: true,
+      type: true,
+      url: true,
+      mimeType: true,
+    },
+  });
+  const trustedIds = new Set(
+    mediaRows
+      .filter(isTrustedJourneyImageMedia)
+      .map((media) => media.id),
+  );
+
+  if (requestedIds.some((mediaId) => !trustedIds.has(mediaId))) {
+    throw new JourneyMediaTrustError(
+      "Journey cover and social images must be trusted Cloudinary JPEG, PNG, or WebP images",
+    );
+  }
+}
 
 export async function getAllJourneys(filters?: JourneyFilters) {
   return prisma.journey.findMany({
@@ -62,9 +105,13 @@ export async function getJourneyById(id: string) {
 }
 
 export async function createJourney(
-  data: CreateJourneyInput & { authorId: string }
+  data: CreateJourneyInput & { authorId: string } & JourneyMediaAssignments
 ): Promise<ActionResult> {
   try {
+    const coverMediaId = data.coverMediaId === "" ? null : data.coverMediaId;
+    const ogImageId = data.ogImageId === "" ? null : data.ogImageId;
+    await validateJourneyMediaAssignments({ coverMediaId, ogImageId });
+
     const baseSlug = generateSlug(data.title);
     const slug = await ensureUniqueSlug(baseSlug, (s) =>
       prisma.journey.findUnique({ where: { slug: s } })
@@ -77,6 +124,8 @@ export async function createJourney(
         ...journeyData,
         slug,
         location: location === "" ? null : location ?? null,
+        ...(data.coverMediaId !== undefined && { coverMediaId }),
+        ...(data.ogImageId !== undefined && { ogImageId }),
         categories: categoryIds?.length
           ? {
               create: categoryIds.map((categoryId) => ({ categoryId })),
@@ -86,7 +135,10 @@ export async function createJourney(
     });
 
     return { success: true, data: journey };
-  } catch {
+  } catch (error) {
+    if (error instanceof JourneyMediaTrustError) {
+      return { success: false, error: error.message };
+    }
     return { success: false, error: "Failed to create journey" };
   }
 }
@@ -120,6 +172,11 @@ export async function updateJourney(
     if (restData.ogImageId === "") restData.ogImageId = null;
     if (restData.location === "") restData.location = null;
 
+    await validateJourneyMediaAssignments({
+      coverMediaId: restData.coverMediaId as string | null | undefined,
+      ogImageId: restData.ogImageId as string | null | undefined,
+    });
+
     const journey = await prisma.$transaction(async (tx) => {
       if (data.categoryIds !== undefined) {
         await tx.journeyCategory.deleteMany({ where: { journeyId: id } });
@@ -141,7 +198,10 @@ export async function updateJourney(
     });
 
     return { success: true, data: journey };
-  } catch {
+  } catch (error) {
+    if (error instanceof JourneyMediaTrustError) {
+      return { success: false, error: error.message };
+    }
     return { success: false, error: "Failed to update journey" };
   }
 }
@@ -317,7 +377,15 @@ export async function getPublicJourneys() {
       orderBy: [{ featured: "desc" }, { publishedAt: "desc" }],
       include: {
         destination: { select: { name: true, country: true, published: true } },
-        coverMedia: { select: { url: true, altText: true } },
+        coverMedia: {
+          select: {
+            url: true,
+            provider: true,
+            type: true,
+            mimeType: true,
+            altText: true,
+          },
+        },
         _count: { select: { chapters: true } },
       },
     });
@@ -362,10 +430,24 @@ export async function getPublicJourneyBySlug(slug: string) {
         coverMedia: {
           select: {
             url: true,
+            provider: true,
             altText: true,
             blurDataUrl: true,
             width: true,
             height: true,
+            mimeType: true,
+            type: true,
+          },
+        },
+        ogImage: {
+          select: {
+            url: true,
+            provider: true,
+            altText: true,
+            width: true,
+            height: true,
+            mimeType: true,
+            type: true,
           },
         },
         categories: {

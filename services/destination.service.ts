@@ -152,7 +152,13 @@ export async function getPublicDestinationBySlug(slug: string) {
               select: { name: true, country: true },
             },
             coverMedia: {
-              select: { url: true, altText: true },
+              select: {
+                url: true,
+                provider: true,
+                type: true,
+                mimeType: true,
+                altText: true,
+              },
             },
             _count: { select: { chapters: true } },
           },

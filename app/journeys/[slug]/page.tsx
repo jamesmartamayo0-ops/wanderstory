@@ -6,6 +6,11 @@ import JourneyDetail from "@/components/marketing/journey-detail/JourneyDetail";
 import { getPublicJourneyBySlug } from "@/services/journey.service";
 import { toPublicJourneyDetail } from "@/lib/adapters/journey-detail.adapter";
 import { serializeJsonLd } from "@/lib/json-ld";
+import { buildPublicJourneyUrl, resolveSiteOrigin } from "@/lib/site-url";
+import {
+  buildJourneyArticleJsonLd,
+  buildJourneyMetadata,
+} from "@/lib/social-sharing";
 
 interface JourneyPageProps {
   params: Promise<{ slug: string }>;
@@ -18,27 +23,21 @@ export async function generateMetadata({
   const raw = await getPublicJourneyBySlug(slug);
 
   if (!raw) {
-    return { title: "Journey Not Found | WanderStory" };
+    return buildJourneyMetadata(
+      null,
+      buildPublicJourneyUrl(slug).toString(),
+      resolveSiteOrigin(),
+    );
   }
 
   const journey = toPublicJourneyDetail(raw);
+  const siteOrigin = resolveSiteOrigin();
+  const computedPublicJourneyUrl = buildPublicJourneyUrl(
+    slug,
+    siteOrigin,
+  ).toString();
 
-  return {
-    title: journey.seoTitle ?? `${journey.title} | WanderStory`,
-    description:
-      journey.seoDescription ?? journey.introduction.slice(0, 160),
-    alternates: journey.canonicalUrl
-      ? { canonical: journey.canonicalUrl }
-      : undefined,
-    openGraph: {
-      title: journey.seoTitle ?? journey.title,
-      description: journey.seoDescription ?? journey.introduction.slice(0, 160),
-      type: "article",
-      images: journey.coverMedia
-        ? [{ url: journey.coverMedia.url, alt: journey.coverMedia.altText ?? journey.title }]
-        : undefined,
-    },
-  };
+  return buildJourneyMetadata(journey, computedPublicJourneyUrl, siteOrigin);
 }
 
 export default async function JourneyPage({ params }: JourneyPageProps) {
@@ -50,23 +49,12 @@ export default async function JourneyPage({ params }: JourneyPageProps) {
   }
 
   const journey = toPublicJourneyDetail(raw);
+  const computedPublicJourneyUrl = buildPublicJourneyUrl(slug).toString();
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: journey.title,
-    author: journey.travelerName,
-    contentLocation: journey.location,
-    datePublished: journey.publishedAt,
-    description: journey.seoDescription ?? journey.introduction.slice(0, 160),
-    ...(journey.coverMedia && {
-      image: journey.coverMedia.url,
-    }),
-    ...(journey.canonicalUrl && {
-      url: journey.canonicalUrl,
-    }),
-    ...(journey.structuredData && { ...journey.structuredData }),
-  };
+  const jsonLd = buildJourneyArticleJsonLd(
+    journey,
+    computedPublicJourneyUrl,
+  );
 
   return (
     <>
@@ -76,7 +64,11 @@ export default async function JourneyPage({ params }: JourneyPageProps) {
       />
       <Navbar overMedia />
       <main>
-        <JourneyDetail journey={journey} slug={slug} />
+        <JourneyDetail
+          journey={journey}
+          slug={slug}
+          publicJourneyUrl={computedPublicJourneyUrl}
+        />
       </main>
       <Footer />
     </>

@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 import { getPublicJourneySlugs } from "@/services/journey.service";
 import { getPublicDestinationSlugs } from "@/services/destination.service";
 import { CONTINENTS } from "@/data/continents";
+import { resolveSiteOrigin } from "@/lib/site-url";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const baseUrl = resolveSiteOrigin().origin;
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {

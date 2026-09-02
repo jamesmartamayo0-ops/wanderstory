@@ -167,7 +167,7 @@ async function main() {
       authorId: admin.id,
       clientId: client.id,
       destinationId: destination.id,
-      coverMediaId: coverMedia.id,
+      coverMediaId: null,
     },
     create: {
       id: "seed-journey-001",
@@ -184,7 +184,7 @@ async function main() {
       authorId: admin.id,
       clientId: client.id,
       destinationId: destination.id,
-      coverMediaId: coverMedia.id,
+      coverMediaId: null,
     },
   });
   console.log(`CASE 1 ready: ${journey1.title}`);

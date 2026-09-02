@@ -1,3 +1,5 @@
+import { isTrustedJourneyImageMedia } from "../journey-media-trust";
+
 export interface PublicJourney {
   id: string;
   slug: string;
@@ -22,8 +24,14 @@ export function toPublicJourney(
   } | null;
   const coverMedia = journey.coverMedia as {
     url: string;
+    provider: string;
+    type: "IMAGE" | "VIDEO" | "DOCUMENT";
+    mimeType: string | null;
     altText: string | null;
   } | null;
+  const trustedCoverMedia = isTrustedJourneyImageMedia(coverMedia)
+    ? coverMedia
+    : null;
   const chapterCount =
     (journey._count as { chapters: number } | null)?.chapters ?? 0;
   const publishedAt = journey.publishedAt
@@ -39,8 +47,8 @@ export function toPublicJourney(
     location: (journey.location as string | null) ?? null,
     destinationName: destination?.name ?? "Unknown",
     destinationCountry: destination?.country ?? "",
-    coverUrl: coverMedia?.url ?? null,
-    coverAlt: coverMedia?.altText ?? null,
+    coverUrl: trustedCoverMedia?.url ?? null,
+    coverAlt: trustedCoverMedia?.altText ?? null,
     chapterCount,
     publishedAt,
   };

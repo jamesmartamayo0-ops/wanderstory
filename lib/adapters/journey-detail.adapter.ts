@@ -1,3 +1,5 @@
+import { isTrustedJourneyImageMedia } from "../journey-media-trust";
+
 export interface PublicJourneyDetail {
   id: string;
   title: string;
@@ -14,10 +16,22 @@ export interface PublicJourneyDetail {
   };
   coverMedia: {
     url: string;
+    provider: string;
     altText: string | null;
     blurDataUrl: string | null;
     width: number | null;
     height: number | null;
+    mimeType: string | null;
+    type: "IMAGE" | "VIDEO" | "DOCUMENT";
+  } | null;
+  ogImage: {
+    url: string;
+    provider: string;
+    altText: string | null;
+    width: number | null;
+    height: number | null;
+    mimeType: string | null;
+    type: "IMAGE" | "VIDEO" | "DOCUMENT";
   } | null;
   categories: Array<{
     name: string;
@@ -78,11 +92,27 @@ export function toPublicJourneyDetail(
   } | null;
   const coverMedia = journey.coverMedia as {
     url: string;
+    provider: string;
     altText: string | null;
     blurDataUrl: string | null;
     width: number | null;
     height: number | null;
+    mimeType: string | null;
+    type: "IMAGE" | "VIDEO" | "DOCUMENT";
   } | null;
+  const ogImage = journey.ogImage as {
+    url: string;
+    provider: string;
+    altText: string | null;
+    width: number | null;
+    height: number | null;
+    mimeType: string | null;
+    type: "IMAGE" | "VIDEO" | "DOCUMENT";
+  } | null;
+  const trustedCoverMedia = isTrustedJourneyImageMedia(coverMedia)
+    ? coverMedia
+    : null;
+  const trustedOgImage = isTrustedJourneyImageMedia(ogImage) ? ogImage : null;
   const categories = (journey.categories as Array<{
     category: { name: string; slug: string };
   }>) ?? [];
@@ -113,13 +143,27 @@ export function toPublicJourneyDetail(
       country: destination?.country ?? "",
       slug: destination?.slug ?? "",
     },
-    coverMedia: coverMedia
+    coverMedia: trustedCoverMedia
       ? {
-          url: coverMedia.url,
-          altText: coverMedia.altText ?? null,
-          blurDataUrl: coverMedia.blurDataUrl ?? null,
-          width: coverMedia.width ?? null,
-          height: coverMedia.height ?? null,
+          url: trustedCoverMedia.url,
+          provider: trustedCoverMedia.provider,
+          altText: trustedCoverMedia.altText ?? null,
+          blurDataUrl: trustedCoverMedia.blurDataUrl ?? null,
+          width: trustedCoverMedia.width ?? null,
+          height: trustedCoverMedia.height ?? null,
+          mimeType: trustedCoverMedia.mimeType ?? null,
+          type: trustedCoverMedia.type,
+        }
+      : null,
+    ogImage: trustedOgImage
+      ? {
+          url: trustedOgImage.url,
+          provider: trustedOgImage.provider,
+          altText: trustedOgImage.altText ?? null,
+          width: trustedOgImage.width ?? null,
+          height: trustedOgImage.height ?? null,
+          mimeType: trustedOgImage.mimeType ?? null,
+          type: trustedOgImage.type,
         }
       : null,
     categories: categories.map((c) => ({
