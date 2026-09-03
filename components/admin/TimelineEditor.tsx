@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
@@ -39,6 +39,10 @@ function formatDate(date: string | Date): string {
   });
 }
 
+function getTimelineOrderIds(events: TimelineEventItem[]): string[] {
+  return [...events].sort((a, b) => a.order - b.order).map((event) => event.id);
+}
+
 function FormErrors({ state }: { state: ActionResult }) {
   if (state.success) return null;
   return (
@@ -69,9 +73,23 @@ export default function TimelineEditor({
 }: TimelineEditorProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
-  const [orderIds, setOrderIds] = useState<string[]>(
-    [...events].sort((a, b) => a.order - b.order).map((e) => e.id)
+  const [orderIds, setOrderIds] = useState<string[]>(() =>
+    getTimelineOrderIds(events)
   );
+  const authoritativeOrderIdsRef = useRef(orderIds);
+
+  useEffect(() => {
+    const nextOrderIds = getTimelineOrderIds(events);
+    const previousOrderIds = authoritativeOrderIdsRef.current;
+    const orderChanged =
+      previousOrderIds.length !== nextOrderIds.length ||
+      previousOrderIds.some((id, index) => id !== nextOrderIds[index]);
+
+    if (orderChanged) {
+      authoritativeOrderIdsRef.current = nextOrderIds;
+      setOrderIds(nextOrderIds);
+    }
+  }, [events]);
 
   const [createState, createFormAction, createPending] = useActionState(
     (_prevState: ActionResult, formData: FormData) => createAction(formData),
