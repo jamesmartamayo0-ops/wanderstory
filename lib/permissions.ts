@@ -27,6 +27,11 @@ export const PERMISSIONS = {
   "timeline:delete": ["SUPER_ADMIN"],
   "timeline:reorder": ["SUPER_ADMIN", "EDITOR"],
 
+  "social:create": ["SUPER_ADMIN", "EDITOR"],
+  "social:update": ["SUPER_ADMIN", "EDITOR"],
+  "social:ready": ["SUPER_ADMIN", "EDITOR"],
+  "social:delete": ["SUPER_ADMIN"],
+
   "client:create": ["SUPER_ADMIN", "EDITOR"],
   "client:update": ["SUPER_ADMIN", "EDITOR"],
   "client:delete": ["SUPER_ADMIN"],

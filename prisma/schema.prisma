@@ -39,6 +39,16 @@ enum MediaRole {
   OG_IMAGE
 }
 
+enum SocialPlatform {
+  FACEBOOK
+  INSTAGRAM
+}
+
+enum SocialDraftStatus {
+  DRAFT
+  READY
+}
+
 enum AuditEventType {
   LOGIN_SUCCESS
   LOGIN_FAILED
@@ -54,6 +64,10 @@ enum AuditEventType {
   TIMELINE_EVENT_CREATED
   TIMELINE_EVENT_UPDATED
   TIMELINE_EVENT_DELETED
+  SOCIAL_DRAFT_CREATED
+  SOCIAL_DRAFT_UPDATED
+  SOCIAL_DRAFT_DELETED
+  SOCIAL_DRAFT_STATUS_CHANGED
 }
 
 enum AuditTargetType {
@@ -63,6 +77,7 @@ enum AuditTargetType {
   CLIENT
   ADMIN
   TIMELINE_EVENT
+  SOCIAL_DRAFT
 }
 
 model Admin {
@@ -75,6 +90,7 @@ model Admin {
   media        Media[]
   auditLogs    AuditLog[]
   loginAttempts LoginAttempt[]
+  createdSocialDrafts SocialDraft[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -137,6 +153,7 @@ model Journey {
   quotes             Quote[]
   media              Media[]
   publicationConsent PublicationConsent?
+  socialDrafts       SocialDraft[]
 
   coverMedia   Media?  @relation("JourneyCover", fields: [coverMediaId], references: [id])
   coverMediaId String? @unique
@@ -277,6 +294,7 @@ model Media {
   journeyCover    Journey?     @relation("JourneyCover")
   journeyOgImage  Journey?     @relation("JourneyOgImage")
   destinationHero Destination?
+  socialDrafts    SocialDraft[]
 
   createdAt DateTime @default(now())
 
@@ -286,6 +304,32 @@ model Media {
   @@index([uploaderId])
   @@index([type])
   @@index([provider])
+}
+
+model SocialDraft {
+  id String @id @default(cuid())
+
+  journey   Journey @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  journeyId String
+
+  platform SocialPlatform
+
+  caption String @default("") @db.Text
+
+  media   Media?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  mediaId String?
+
+  status SocialDraftStatus @default(DRAFT)
+
+  createdBy   Admin?  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([journeyId, platform])
+  @@index([status, updatedAt])
+  @@index([mediaId])
 }
 
 model AuditLog {
