@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 type MediaItem = {
   id: string;
@@ -25,6 +25,7 @@ export default function MediaPicker({
   typeFilter,
 }: MediaPickerProps) {
   const [search, setSearch] = useState("");
+  const searchId = useId();
 
   const filtered = media.filter((item) => {
     if (typeFilter && item.type !== typeFilter) return false;
@@ -35,12 +36,16 @@ export default function MediaPicker({
 
   return (
     <div className="space-y-3">
+      <label htmlFor={searchId} className="block text-sm font-medium">
+        Search media
+      </label>
       <input
+        id={searchId}
         type="text"
         placeholder="Search..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+        className="w-full rounded-md border border-neutral-300 px-3 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
       />
 
       <div className="grid max-h-80 grid-cols-3 gap-2 overflow-y-auto">
@@ -48,10 +53,12 @@ export default function MediaPicker({
           <button
             key={item.id}
             type="button"
+            aria-label={`${selectedId === item.id ? "Deselect" : "Select"} ${item.fileName}`}
+            aria-pressed={selectedId === item.id}
             onClick={() =>
               onSelect(selectedId === item.id ? null : item)
             }
-            className={`relative aspect-square overflow-hidden rounded-lg border-2 ${
+            className={`relative aspect-square overflow-hidden rounded-lg border-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
               selectedId === item.id
                 ? "border-blue-500 ring-2 ring-blue-300"
                 : "border-neutral-200 hover:border-blue-300"

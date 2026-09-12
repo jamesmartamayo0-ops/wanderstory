@@ -202,10 +202,13 @@ export async function getSocialDraftsByJourney(journeyId: string) {
  * Idempotent create contract: return an existing Journey/platform draft
  * without updating it, or create it with compound-unique race recovery.
  */
-export async function createSocialDraft(
+async function createSocialDraftCore(
   input: unknown,
   createdById: string,
-): Promise<SocialDraftServiceResult<Awaited<ReturnType<typeof getSocialDraftsByJourney>>[number]>> {
+): Promise<SocialDraftServiceResult<{
+  draft: Awaited<ReturnType<typeof getSocialDraftsByJourney>>[number];
+  created: boolean;
+}>> {
   const parsed = createSocialDraftSchema.safeParse(input);
   if (!parsed.success || createdById.length === 0) {
     return failure("VALIDATION_ERROR", "Invalid social draft input");
@@ -228,7 +231,7 @@ export async function createSocialDraft(
     });
 
     if (existing) {
-      return { success: true, data: existing };
+      return { success: true, data: { draft: existing, created: false } };
     }
 
     if (
@@ -256,7 +259,7 @@ export async function createSocialDraft(
         select: socialDraftSelect,
       });
 
-      return { success: true, data: draft };
+      return { success: true, data: { draft, created: true } };
     } catch (error) {
       if (!isSocialDraftUniqueConflict(error)) {
         throw error;
@@ -268,7 +271,7 @@ export async function createSocialDraft(
       });
 
       return winner
-        ? { success: true, data: winner }
+        ? { success: true, data: { draft: winner, created: false } }
         : failure(
             "OPERATION_FAILED",
             "Failed to create social draft",
@@ -277,6 +280,23 @@ export async function createSocialDraft(
   } catch {
     return failure("OPERATION_FAILED", "Failed to create social draft");
   }
+}
+
+export async function createSocialDraft(
+  input: unknown,
+  createdById: string,
+): Promise<SocialDraftServiceResult<Awaited<ReturnType<typeof getSocialDraftsByJourney>>[number]>> {
+  const result = await createSocialDraftCore(input, createdById);
+  return result.success
+    ? { success: true, data: result.data.draft }
+    : result;
+}
+
+export async function createSocialDraftWithOutcome(
+  input: unknown,
+  createdById: string,
+) {
+  return createSocialDraftCore(input, createdById);
 }
 
 export async function updateSocialDraft(

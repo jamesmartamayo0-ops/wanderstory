@@ -108,11 +108,17 @@ export default async function JourneyEditPage({
         >
           &larr; Back to journeys
         </Link>
-        <div className="mt-2 flex items-center gap-3">
+        <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">{journey.title}</h1>
           <Badge variant={statusColors[journey.status] || "default"}>
             {journey.status}
           </Badge>
+          <Link
+            href={`/admin/journeys/${id}/social`}
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          >
+            Social Content
+          </Link>
         </div>
       </div>
 

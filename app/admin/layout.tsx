@@ -17,8 +17,8 @@ export default async function AdminLayout({
   return (
     <>
       <AdminThemeLock />
-      <div className="flex min-h-screen bg-white text-[#171717] [color-scheme:light]">
-      <aside className="w-64 border-r bg-neutral-50 p-6">
+      <div className="flex min-h-screen flex-col bg-white text-[#171717] [color-scheme:light] md:flex-row">
+      <aside className="w-full shrink-0 border-b bg-neutral-50 p-6 md:w-64 md:border-b-0 md:border-r">
         <nav className="space-y-4">
           <div className="text-lg font-bold">WanderStory</div>
           <ul className="space-y-2 text-sm">
@@ -62,7 +62,7 @@ export default async function AdminLayout({
           </ul>
         </nav>
       </aside>
-      <main className="flex-1 p-6">{children}</main>
+      <main className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>
       </div>
     </>
   );
