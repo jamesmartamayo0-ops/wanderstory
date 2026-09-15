@@ -5,9 +5,13 @@
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev --turbopack",
+    "prebuild": "tsx scripts/database/assert-migrations-applied.mts",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "db:migrate:target": "tsx scripts/database/verify-migration-target.mts",
+    "db:migrate:release": "tsx scripts/database/migrate-release.mts",
+    "test:mf5a:pass1": "node --experimental-test-module-mocks --import tsx --test tests/migration-target-guard.test.ts tests/vercel-build-contract.test.ts",
     "test:mf2": "node --experimental-test-module-mocks --import tsx --test tests/*.test.ts",
     "test:mf3": "node --experimental-test-module-mocks --import tsx --test tests/social-sharing.test.ts tests/journey-sharing-boundary.test.ts tests/journey-media-trust.test.ts tests/journey-public-media-boundary.test.ts tests/saved-journeys-storage.test.ts",
     "test:mf4a": "node --experimental-test-module-mocks --import tsx --test tests/social-draft-validation.test.ts tests/social-draft-eligibility.test.ts tests/social-draft-permissions.test.ts tests/social-draft-service.test.ts tests/social-draft-boundary.test.ts",
