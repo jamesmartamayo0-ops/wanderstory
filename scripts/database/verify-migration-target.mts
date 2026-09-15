@@ -40,7 +40,7 @@ function expectedPort(env: Environment, key: string): number {
   if (!/^[1-9]\d{0,4}$/.test(value) || Number(value) > 65535) fail("INVALID_EXPECTED_PORT");
   return Number(value);
 }
-function endpoint(value: string): Endpoint {
+function endpoint(value: string, kind: "runtime" | "direct"): Endpoint {
   try {
     if (value !== value.trim() || /[\u0000-\u0020\\]/.test(value)) fail("INVALID_DATABASE_URL");
     const url = new URL(value);
@@ -51,9 +51,14 @@ function endpoint(value: string): Endpoint {
     if (!host || !/^[a-z0-9.:-]+$/.test(host)) fail("INVALID_DATABASE_HOST");
     // No host/port/options override may be smuggled through a query parameter.
     for (const key of url.searchParams.keys()) {
-      if (!["schema", "sslmode"].includes(key) || url.searchParams.getAll(key).length !== 1) {
+      if (!["schema", "sslmode", "pgbouncer"].includes(key) || url.searchParams.getAll(key).length !== 1) {
         fail("UNSUPPORTED_DATABASE_OPTIONS");
       }
+    }
+    // Endpoint identity comes only from the caller; topology is checked below.
+    if (url.searchParams.has("pgbouncer") &&
+        (kind !== "runtime" || url.searchParams.get("pgbouncer") !== "true")) {
+      fail("UNSUPPORTED_DATABASE_OPTIONS");
     }
     if (url.searchParams.has("schema") && url.searchParams.get("schema") !== "public") {
       fail("UNSUPPORTED_DATABASE_SCHEMA");
@@ -83,8 +88,8 @@ export function verifyMigrationTarget(env: Environment): MigrationTarget {
   const directHost = normalizedHost(required(env, "MIGRATION_EXPECTED_DIRECT_HOST"));
   const runtimePort = expectedPort(env, "MIGRATION_EXPECTED_RUNTIME_PORT");
   const directPort = expectedPort(env, "MIGRATION_EXPECTED_DIRECT_PORT");
-  const runtime = endpoint(runtimeUrl);
-  const direct = endpoint(directUrl);
+  const runtime = endpoint(runtimeUrl, "runtime");
+  const direct = endpoint(directUrl, "direct");
   if (runtime.database !== expectedDatabase || direct.database !== expectedDatabase) fail("DATABASE_MISMATCH");
   if (runtime.host !== runtimeHost || direct.host !== directHost) fail("HOST_MISMATCH");
   if (runtime.port !== runtimePort || direct.port !== directPort) fail("PORT_MISMATCH");
@@ -117,6 +122,11 @@ export function verifyMigrationTarget(env: Environment): MigrationTarget {
       if (!new URL(entry.url).searchParams.has("sslmode")) fail("REMOTE_TLS_REQUIRED");
     }
     topology = "supabase";
+  }
+  // Proven remote topology permits port 6543 only for the Supabase pooler.
+  if (new URL(runtime.url).searchParams.has("pgbouncer") &&
+      (topology !== "supabase" || runtime.port !== 6543)) {
+    fail("UNSUPPORTED_DATABASE_OPTIONS");
   }
   const safeEndpoint = (entry: Endpoint) => Object.freeze({
     host: topology === "loopback" ? entry.host : "[verified-supabase-host]",

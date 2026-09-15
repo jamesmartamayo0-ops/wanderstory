@@ -56,10 +56,13 @@ operator assertions, not environment discovery: setting the production anchor
 incorrectly defeats its intended preview/production separation.
 
 Only PostgreSQL protocols and the `public` schema are supported. Credentials must
-be present but are never displayed. Query options other than `schema=public` and
-`sslmode=require`/`verify-full`, duplicate options, fragments, malformed encodings,
-socket overrides, and host/port overrides fail. Use TLS for remote URLs. Direct
-catalog checks require trusted TLS certificates; a connection failure is fatal.
+be present but are never displayed. Supported query options are `schema=public`,
+`sslmode=require`/`verify-full`, and the restricted runtime-only `pgbouncer=true`
+case below. Unknown or duplicate options, fragments, malformed encodings, socket
+overrides, and host/port overrides fail. Both remote URLs must explicitly include
+`sslmode=require` or `sslmode=verify-full`; missing TLS mode fails with
+`REMOTE_TLS_REQUIRED`. Direct catalog checks require trusted TLS certificates;
+a connection failure is fatal.
 
 For local mode, both endpoints must use the same exact loopback hostname and port:
 `127.0.0.1`, `localhost`, or `::1`. Mixing loopback aliases is deliberately refused.
@@ -71,6 +74,16 @@ standard direct role, or the recognized AWS Supabase pooler hostname with its
 project-qualified role. The runtime may use port 5432 or 6543 on that pooler;
 `DIRECT_URL` may use only port 5432. Unrecognized/custom topology fails closed.
 There is no general-purpose cloud host detection or automatic target selection.
+
+`pgbouncer=true` is permitted only on the runtime `DATABASE_URL` after proving a
+remote Supabase transaction-pooler host, project-qualified role, and port 6543.
+It is rejected on every `DIRECT_URL`, in local mode, on other topology or ports,
+with any value other than exactly `true`, or when duplicated. Endpoint identity
+comes from the verifier's runtime/direct call position, never from URL options.
+`connection_limit`, `pool_timeout`, and arbitrary driver parameters remain
+unsupported. Keep `pgbouncer=true` in the runtime URL and add `sslmode=require`
+(or `verify-full`); the session/direct URL on port 5432 must include the TLS mode
+and must not include `pgbouncer`.
 
 ## A. Ordinary local development
 

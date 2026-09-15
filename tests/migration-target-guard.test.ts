@@ -37,6 +37,20 @@ function remote(environment: "preview" | "production" = "preview"): Environment 
   };
 }
 
+function transactionPooler(
+  environment: "preview" | "production" = "production",
+  sslMode: "require" | "verify-full" = "require",
+): Environment {
+  const env = remote(environment);
+  const runtimeUrl = env.DATABASE_URL!.replace("sslmode=verify-full", "schema=public&sslmode=" + sslMode);
+  return {
+    ...env, VERCEL: "1", VERCEL_ENV: environment,
+    DATABASE_URL: runtimeUrl + "&pgbouncer=true",
+    DIRECT_URL: runtimeUrl.replace(":6543/", ":5432/"),
+    MIGRATION_EXPECTED_DIRECT_HOST: env.MIGRATION_EXPECTED_RUNTIME_HOST,
+  };
+}
+
 let spawnCalls: Array<{ executable: string; args: string[]; options: Record<string, unknown> }> = [];
 let childExit = 0;
 let childStdout = "";
@@ -264,6 +278,149 @@ test("remote missing TLS cannot pass", () => {
     ...remote(), DIRECT_URL: remote().DIRECT_URL!.replace("?sslmode=verify-full", ""),
   }), /REMOTE_TLS_REQUIRED/);
 });
+
+for (const environment of ["preview", "production"] as const) {
+  for (const sslMode of ["require", "verify-full"] as const) {
+    test(`pgbouncer=true accepts verified ${environment} runtime transaction pooler with ${sslMode}`, async () => {
+      const env = transactionPooler(environment, sslMode);
+      const target = guard.verifyMigrationTarget(env);
+      assert.equal(target.environment, environment);
+      assert.equal(target.topology, "supabase");
+      assert.equal(target.runtime.port, 6543);
+      assert.equal(target.direct.port, 5432);
+      assert.equal(target.runtime.host, "[verified-supabase-host]");
+      assert.equal(target.direct.host, "[verified-supabase-host]");
+      const { deps, calls, logs } = checks();
+      assert.equal(await gate.assertMigrationsApplied(env, deps), "ready");
+      assert.deepEqual(calls, ["files", "inspect", "status", "smoke"]);
+      const output = JSON.stringify({ target, logs });
+      for (const secret of [sentinel, env.DATABASE_URL!, env.DIRECT_URL!, "postgresql://"]) {
+        assert.ok(!output.includes(secret), "Target and gate logs must remain redacted");
+      }
+      assert.deepEqual(databaseConfigs, []);
+      assert.deepEqual(databaseCalls, []);
+      assert.deepEqual(spawnCalls, []);
+    });
+  }
+}
+
+test("pgbouncer runtime remains compatible with the project direct host on port 5432", () => {
+  const env = transactionPooler();
+  const direct = remote("production");
+  const target = guard.verifyMigrationTarget({
+    ...env, DIRECT_URL: direct.DIRECT_URL,
+    MIGRATION_EXPECTED_DIRECT_HOST: direct.MIGRATION_EXPECTED_DIRECT_HOST,
+  });
+  assert.equal(target.topology, "supabase");
+  assert.equal(target.direct.port, 5432);
+  assert.deepEqual(databaseConfigs, []);
+  assert.deepEqual(spawnCalls, []);
+});
+
+const poolerProduction = transactionPooler();
+const poolerRuntimeUrl = poolerProduction.DATABASE_URL!;
+const poolerDirectUrl = poolerProduction.DIRECT_URL!;
+for (const [label, overrides, code] of [
+  ...["false", "1", "", "TRUE", "true%20"].map((value) => [
+    "pgbouncer value " + JSON.stringify(value),
+    { DATABASE_URL: poolerRuntimeUrl.replace("pgbouncer=true", "pgbouncer=" + value) },
+    "UNSUPPORTED_DATABASE_OPTIONS",
+  ]),
+  ["duplicate pgbouncer", { DATABASE_URL: poolerRuntimeUrl + "&pgbouncer=true" }, "UNSUPPORTED_DATABASE_OPTIONS"],
+  ["encoded duplicate pgbouncer", { DATABASE_URL: poolerRuntimeUrl + "&%70gbouncer=true" }, "UNSUPPORTED_DATABASE_OPTIONS"],
+  ["pgbouncer on session DIRECT_URL", { DIRECT_URL: poolerDirectUrl + "&pgbouncer=true" }, "UNSUPPORTED_DATABASE_OPTIONS"],
+  ["pgbouncer on project DIRECT_URL", {
+    DIRECT_URL: remote("production").DIRECT_URL + "&pgbouncer=true",
+    MIGRATION_EXPECTED_DIRECT_HOST: remote("production").MIGRATION_EXPECTED_DIRECT_HOST,
+  }, "UNSUPPORTED_DATABASE_OPTIONS"],
+  ["pgbouncer on local runtime", {
+    ...local({ DATABASE_URL: localUrl + "&pgbouncer=true" }), VERCEL: undefined, VERCEL_ENV: undefined,
+  }, "UNSUPPORTED_DATABASE_OPTIONS"],
+  ["pgbouncer on local direct", {
+    ...local({ DIRECT_URL: localUrl + "&pgbouncer=true" }), VERCEL: undefined, VERCEL_ENV: undefined,
+  }, "UNSUPPORTED_DATABASE_OPTIONS"],
+  ["pgbouncer on local port 6543", {
+    ...local({
+      DATABASE_URL: localUrl.replace(":55436/", ":6543/") + "&pgbouncer=true",
+      DIRECT_URL: localUrl.replace(":55436/", ":6543/"),
+      MIGRATION_EXPECTED_RUNTIME_PORT: "6543", MIGRATION_EXPECTED_DIRECT_PORT: "6543",
+    }), VERCEL: undefined, VERCEL_ENV: undefined,
+  }, "UNSUPPORTED_DATABASE_OPTIONS"],
+  ["pgbouncer on runtime session port 5432", {
+    DATABASE_URL: poolerRuntimeUrl.replace(":6543/", ":5432/"), MIGRATION_EXPECTED_RUNTIME_PORT: "5432",
+  }, "UNSUPPORTED_DATABASE_OPTIONS"],
+  ["pgbouncer on unknown runtime host", {
+    DATABASE_URL: poolerRuntimeUrl.replace("aws-0-ap-northeast-1.pooler.supabase.com", "other.example"),
+    MIGRATION_EXPECTED_RUNTIME_HOST: "other.example",
+  }, "UNPROVEN_REMOTE_TOPOLOGY"],
+  ["pgbouncer on lookalike Supabase host", {
+    DATABASE_URL: poolerRuntimeUrl.replace(".pooler.supabase.com", ".pooler.supabase.com.other.example"),
+    MIGRATION_EXPECTED_RUNTIME_HOST: "aws-0-ap-northeast-1.pooler.supabase.com.other.example",
+  }, "UNPROVEN_REMOTE_TOPOLOGY"],
+  ["pgbouncer with another project role", {
+    DATABASE_URL: poolerRuntimeUrl.replace("postgres." + project, "postgres." + otherProject),
+  }, "UNPROVEN_REMOTE_TOPOLOGY"],
+  ["pgbouncer with mismatched expected host", { MIGRATION_EXPECTED_RUNTIME_HOST: "other.example" }, "HOST_MISMATCH"],
+  ["pgbouncer with mismatched expected port", { MIGRATION_EXPECTED_RUNTIME_PORT: "5432" }, "PORT_MISMATCH"],
+  ["pgbouncer with mismatched database", { MIGRATION_EXPECTED_DATABASE: "other" }, "DATABASE_MISMATCH"],
+  ["pgbouncer with mismatched production anchor", { MIGRATION_PRODUCTION_PROJECT_REF: otherProject }, "REMOTE_ENVIRONMENT_MISMATCH"],
+  ["pgbouncer preview using production project", {
+    MIGRATION_TARGET_ENVIRONMENT: "preview", VERCEL_ENV: "preview",
+  }, "REMOTE_ENVIRONMENT_MISMATCH"],
+  ["pgbouncer with Vercel environment mismatch", { VERCEL_ENV: "preview" }, "VERCEL_ENVIRONMENT_MISMATCH"],
+  ...(["DATABASE_URL", "DIRECT_URL"] as const).flatMap((key) => {
+    const url = poolerProduction[key]!;
+    return [
+      [key + " missing sslmode", { [key]: url.replace("&sslmode=require", "") }, "REMOTE_TLS_REQUIRED"],
+      ...["disable", "prefer", ""].map((mode) => [
+        key + " unsafe sslmode " + JSON.stringify(mode),
+        { [key]: url.replace("sslmode=require", "sslmode=" + mode) }, "UNSAFE_DATABASE_TLS",
+      ]),
+      [key + " duplicate sslmode", { [key]: url + "&sslmode=require" }, "UNSUPPORTED_DATABASE_OPTIONS"],
+      [key + " non-public schema", { [key]: url.replace("schema=public", "schema=private") }, "UNSUPPORTED_DATABASE_SCHEMA"],
+      ...["connection_limit=1", "pool_timeout=10", "host=other.example", "port=6543", "options=-h/var/run", "endpoint=runtime", "unknown=true"].map((option) => [
+        key + " unsupported " + option.split("=")[0], { [key]: url + "&" + option }, "UNSUPPORTED_DATABASE_OPTIONS",
+      ]),
+    ];
+  }),
+] as Array<[string, Environment, string]>) {
+  test("pooler policy rejects " + label + " before I/O with safe errors", async () => {
+    const env: Environment = { ...poolerProduction, ...overrides, MIGRATION_STATUS_GATE: "1" };
+    const { deps, calls, logs } = checks();
+    const safeError = (error: unknown) => {
+      assert.ok(error instanceof guard.MigrationGuardError);
+      assert.equal(error.code, code);
+      for (const secret of [sentinel, env.DATABASE_URL!, env.DIRECT_URL!, "postgresql://"]) {
+        assert.ok(!String(error).includes(secret), "Guard error must remain redacted");
+      }
+      return true;
+    };
+    assert.throws(() => guard.verifyMigrationTarget(env), safeError);
+    await assert.rejects(gate.assertMigrationsApplied(env, deps), safeError);
+    await assert.rejects(release.migrateRelease(env, deps), safeError);
+    assert.deepEqual(calls, []);
+    assert.deepEqual(logs, []);
+    assert.deepEqual(databaseConfigs, []);
+    assert.deepEqual(databaseCalls, []);
+    assert.deepEqual(spawnCalls, []);
+  });
+}
+
+test("pgbouncer runtime is retained in the fixed Prisma child environment (spawn mocked)", async () => {
+  const env = transactionPooler();
+  const { deps, calls } = checks(1);
+  await assert.rejects(gate.assertMigrationsApplied(env, deps), /MIGRATIONS_NOT_READY/);
+  assert.deepEqual(calls, ["files", "inspect", "status"]);
+  assert.equal(spawnCalls.length, 0);
+  await guard.readPrismaStatus(guard.verifyMigrationTarget(env));
+  assert.equal(spawnCalls.length, 1);
+  assert.deepEqual(spawnCalls[0].args, [localCli, "migrate", "status"]);
+  const childEnv = spawnCalls[0].options.env as Environment;
+  assert.equal(childEnv.DATABASE_URL, env.DATABASE_URL);
+  assert.equal(childEnv.DIRECT_URL, env.DIRECT_URL);
+  assert.deepEqual(databaseConfigs, []);
+});
+
 test("ordinary local build skips without inspecting URL, reading files, DB access, or spawn", async () => {
   const { deps, calls, logs } = checks();
   assert.equal(await gate.assertMigrationsApplied({ DATABASE_URL: "malformed-" + sentinel }, deps), "skipped");
