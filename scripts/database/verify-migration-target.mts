@@ -27,6 +27,62 @@ export class MigrationGuardError extends Error {
   }
 }
 function fail(code: string): never { throw new MigrationGuardError(code); }
+
+export type InspectionPass = "initial" | "smoke" | "release-precheck" | "release-postcheck";
+type InspectionOperation = "connect" | "begin_read_only" | "identity_query" | "migration_query" |
+  "columns_query" | "rollback" | "identity_check";
+type InspectionErrorCategory = "authentication" | "tls" | "network" | "timeout" |
+  "postgres" | "identity_mismatch" | "unknown";
+// Exact known codes only: a five-character string alone is not proof of SQLSTATE.
+// Protocol violations and query cancellation do not establish a specific cause.
+const inspectionErrorCodes = {
+  "28000": "authentication", "28P01": "authentication",
+  "08000": "postgres", "08001": "postgres", "08003": "postgres", "08004": "postgres",
+  "08006": "postgres", "08007": "postgres", "08P01": "postgres",
+  "0A000": "postgres", "22023": "postgres", "25006": "postgres", "3D000": "postgres",
+  "42501": "postgres", "42601": "postgres", "42703": "postgres", "42704": "postgres",
+  "42P01": "postgres", "53300": "postgres", "57014": "postgres",
+  "57P01": "postgres", "57P02": "postgres", "57P03": "postgres", "XX000": "postgres",
+  ECONNREFUSED: "network", ECONNRESET: "network", ETIMEDOUT: "timeout",
+  ENOTFOUND: "network", EHOSTUNREACH: "network", ENETUNREACH: "network",
+  CERT_HAS_EXPIRED: "tls", DEPTH_ZERO_SELF_SIGNED_CERT: "tls",
+  UNABLE_TO_VERIFY_LEAF_SIGNATURE: "tls", ERR_TLS_CERT_ALTNAME_INVALID: "tls",
+} as const satisfies Record<string, InspectionErrorCategory>;
+type InspectionErrorCode = keyof typeof inspectionErrorCodes;
+type InspectionDiagnostic = Readonly<{
+  pass: InspectionPass;
+  endpoint: "direct" | "runtime";
+  operation: InspectionOperation;
+  category: InspectionErrorCategory;
+  code: InspectionErrorCode | null;
+}>;
+// Retain only internally constructed metadata, never the provider error or cause.
+const inspectionDiagnostics = new WeakMap<MigrationGuardError, InspectionDiagnostic>();
+function databaseReadFailure(
+  error: unknown, pass: InspectionPass, endpoint: "direct" | "runtime", operation: InspectionOperation,
+): MigrationGuardError {
+  let category: InspectionErrorCategory = "unknown";
+  let code: InspectionErrorCode | null = null;
+  try {
+    // Do not invoke getters, coercion, or serialization on an untrusted error.
+    const value: unknown = error !== null && typeof error === "object"
+      ? Object.getOwnPropertyDescriptor(error, "code")?.value : undefined;
+    if (typeof value === "string" && Object.hasOwn(inspectionErrorCodes, value)) {
+      code = value as InspectionErrorCode;
+      category = inspectionErrorCodes[code];
+    } else if (operation === "identity_check" && value === "CONNECTED_DATABASE_MISMATCH") {
+      category = "identity_mismatch";
+    }
+  } catch { /* Uninspectable errors retain unknown/null and still fail closed. */ }
+  const failure = new MigrationGuardError("DATABASE_READ_FAILED");
+  inspectionDiagnostics.set(failure, Object.freeze({
+    pass: pass === "smoke" || pass === "release-precheck" || pass === "release-postcheck" ? pass : "initial",
+    endpoint: endpoint === "runtime" ? "runtime" : "direct",
+    operation, category, code,
+  }));
+  return failure;
+}
+
 function required(env: Environment, key: string): string {
   const value = env[key];
   if (!value || !value.trim()) fail("MISSING_" + key);
@@ -193,7 +249,9 @@ export function compareMigrationHistory(files: MigrationFile[], snapshot: Databa
 }
 
 /** Fresh pg connections, READ ONLY transactions; no Prisma config import. */
-export async function inspectDatabase(target: MigrationTarget, kind: "runtime" | "direct"): Promise<DatabaseSnapshot> {
+export async function inspectDatabase(
+  target: MigrationTarget, kind: "runtime" | "direct", pass: InspectionPass = "initial",
+): Promise<DatabaseSnapshot> {
   const entry = secretsFor(target)[kind];
   const { Client } = await import("pg");
   const client = new Client({
@@ -206,39 +264,46 @@ export async function inspectDatabase(target: MigrationTarget, kind: "runtime" |
   });
   // Do not allow EventEmitter errors to print a provider exception.
   client.on("error", () => {});
+  let operation: InspectionOperation = "connect";
   try {
     await client.connect();
+    operation = "begin_read_only";
     await client.query("BEGIN READ ONLY");
+    operation = "identity_query";
     const identity = await client.query<{ database: string; migrations_table: string | null }>(
       "SELECT current_database() AS database, to_regclass('public._prisma_migrations')::text AS migrations_table",
     );
     const migrationsTable = identity.rows[0].migrations_table !== null;
+    operation = "migration_query";
     const rows = migrationsTable ? (await client.query<MigrationRow>(
       'SELECT migration_name, checksum, finished_at::text, rolled_back_at::text FROM public."_prisma_migrations" ORDER BY migration_name, started_at',
     )).rows : [];
+    operation = "columns_query";
     const columns = (await client.query<DatabaseSnapshot["columns"][number]>(
       "SELECT table_name, column_name, data_type, udt_name FROM information_schema.columns WHERE table_schema = 'public' ORDER BY table_name, ordinal_position",
     )).rows;
+    operation = "rollback";
     await client.query("ROLLBACK");
+    operation = "identity_check";
     if (identity.rows[0].database !== target[kind].database) fail("CONNECTED_DATABASE_MISMATCH");
     return { database: identity.rows[0].database, migrationsTable, migrations: rows, columns };
-  } catch {
-    return fail("DATABASE_READ_FAILED");
+  } catch (error) {
+    throw databaseReadFailure(error, pass, kind, operation);
   } finally {
     await client.end().catch(() => {});
   }
 }
 
-export async function verifyLogicalTarget(target: MigrationTarget): Promise<DatabaseSnapshot> {
-  const direct = await inspectDatabase(target, "direct");
-  const runtime = await inspectDatabase(target, "runtime");
+export async function verifyLogicalTarget(target: MigrationTarget, pass: InspectionPass = "initial"): Promise<DatabaseSnapshot> {
+  const direct = await inspectDatabase(target, "direct", pass);
+  const runtime = await inspectDatabase(target, "runtime", pass);
   if (JSON.stringify(direct) !== JSON.stringify(runtime)) fail("LOGICAL_TARGET_MISMATCH");
   return direct;
 }
 
 /** Checks every scalar column currently declared by the trusted repo schema. */
 export async function verifySchemaSmoke(target: MigrationTarget): Promise<void> {
-  const snapshot = await verifyLogicalTarget(target);
+  const snapshot = await verifyLogicalTarget(target, "smoke");
   const history = compareMigrationHistory(await readMigrationFiles(), snapshot);
   if (history.pending.length) fail("PENDING_MIGRATIONS");
   const schema = await readFile(resolve(repositoryRoot, "prisma/schema.prisma"), "utf8");
@@ -348,6 +413,11 @@ export const defaultChecks = {
 export type GateChecks = typeof defaultChecks;
 
 export function reportFailure(error: unknown): void {
+  const diagnostic = error instanceof MigrationGuardError ? inspectionDiagnostics.get(error) : undefined;
+  if (diagnostic) {
+    try { console.error("Migration diagnostic: " + JSON.stringify(diagnostic)); }
+    catch { /* Diagnostic emission is best-effort; preserve the normal failure path. */ }
+  }
   console.error(error instanceof MigrationGuardError ? error.message : "Migration safety check failed: OPERATION_FAILED");
   process.exitCode = 1;
 }

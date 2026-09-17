@@ -224,6 +224,53 @@ Stop promotion on any failure. Keep the previous application active where
 possible and investigate through approved, secret-safe operational tooling. Raw
 provider/Prisma exceptions and credentials are deliberately suppressed here.
 
+Database inspection failures keep the exact external failure and exit code 1:
+
+```text
+Migration diagnostic: {"pass":"initial","endpoint":"direct","operation":"connect","category":"postgres","code":"08P01"}
+Migration safety check failed: DATABASE_READ_FAILED
+```
+
+This is an illustrative diagnostic, not evidence of a production cause. The
+failure reporter emits one diagnostic line immediately before the existing error
+line. Its only keys are `pass`, `endpoint`, `operation`, `category`, and `code`.
+The original provider error is neither retained nor serialized.
+
+- `pass`: `initial` for prebuild's first inspection and standalone target
+  verification; `smoke` for schema smoke's inspection; `release-precheck` for both
+  release inspections before deploy; `release-postcheck` for the inspection after
+  deploy and its status check. Release schema smoke still uses `smoke`.
+- `endpoint`: `direct` or `runtime`, with the existing direct-first order.
+- `operation`: `connect`, `begin_read_only`, `identity_query`, `migration_query`,
+  `columns_query`, `rollback`, or `identity_check`. `begin_read_only` is the first
+  query, distinct from the subsequent identity SELECT.
+- `category`: `authentication`, `tls`, `network`, `timeout`, `postgres`,
+  `identity_mismatch`, or `unknown`. Categories use only exact allowlisted codes
+  and the internal connected-database mismatch marker. `08P01` means a protocol
+  violation, not proof of a startup-parameter rejection; `57014` does not prove a
+  timeout. Both remain `postgres`. Message-only errors remain `unknown`.
+- `code`: an exact allowlisted primitive string or `null`. The SQLSTATE allowlist
+  is `28000`, `28P01`, `08000`, `08001`, `08003`, `08004`, `08006`, `08007`,
+  `08P01`, `0A000`, `22023`, `25006`, `3D000`, `42501`, `42601`, `42703`, `42704`,
+  `42P01`, `53300`, `57014`, `57P01`, `57P02`, `57P03`, and `XX000`. System codes
+  are limited to `ECONNREFUSED`, `ECONNRESET`, `ETIMEDOUT`, `ENOTFOUND`,
+  `EHOSTUNREACH`, `ENETUNREACH`, `CERT_HAS_EXPIRED`, `DEPTH_ZERO_SELF_SIGNED_CERT`,
+  `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, and `ERR_TLS_CERT_ALTNAME_INVALID`.
+  Unknown codes, including unlisted five-character strings, become `null`.
+
+Only an own data property named `code` is inspected; getters, inherited values,
+coercion, and arbitrary error names are ignored. No message, stack, detail, hint,
+cause, URL, host, port, database, username, password, configuration, provider
+response, or query text is included in the diagnostic. Keep the bounded line for
+investigation; do not enable raw provider logging to fill gaps in it.
+
+This diagnostic does not change connection options, TLS verification, read-only
+protections, queries, endpoint routing, release sequencing, or failure cleanup.
+A failure stops the remaining steps. A `smoke` failure in prebuild can follow a
+successful status command; prebuild still cannot deploy migrations. A
+`release-postcheck` failure follows an already attempted deploy and does not
+authorize a retry. Runtime evidence is still needed before selecting a fix.
+
 Never edit an already-applied migration, automatically repair its ledger, or
 attempt a destructive rollback. Prefer an independently reviewed forward-fix
 migration with a compatible application rollout. Partial migration failures need

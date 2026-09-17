@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import * as fsPromises from "node:fs/promises";
 import type {
-  DatabaseSnapshot, Environment, MigrationFile,
+  DatabaseSnapshot, Environment, InspectionPass, MigrationFile,
 } from "../scripts/database/verify-migration-target.mjs";
 import type { ReleaseChecks } from "../scripts/database/migrate-release.mjs";
 
@@ -114,6 +114,8 @@ mockModule("node:child_process", { exports: { spawn: (
 let databaseConfigs: Array<Record<string, unknown>> = [];
 let databaseCalls: string[] = [];
 let databaseThrows = false;
+let databaseFailure: { index: number; at: string; error: unknown } | undefined;
+let databaseEndThrows = false;
 let databaseView: ((index: number) => DatabaseSnapshot) | undefined;
 class MockDatabaseClient extends EventEmitter {
   private readonly index: number;
@@ -124,10 +126,12 @@ class MockDatabaseClient extends EventEmitter {
   }
   async connect() {
     databaseCalls.push("connect");
+    if (databaseFailure?.index === this.index && databaseFailure.at === "connect") throw databaseFailure.error;
     if (databaseThrows) throw new Error(sentinel + localUrl);
   }
   async query(sql: string) {
     databaseCalls.push(sql);
+    if (databaseFailure?.index === this.index && sql.startsWith(databaseFailure.at)) throw databaseFailure.error;
     const view = databaseView?.(this.index) ?? snapshot();
     if (sql.startsWith("SELECT current_database()")) {
       return { rows: [{ database: view.database, migrations_table: view.migrationsTable ? "_prisma_migrations" : null }] };
@@ -137,7 +141,10 @@ class MockDatabaseClient extends EventEmitter {
     assert.ok(sql === "BEGIN READ ONLY" || sql === "ROLLBACK", "Only read-only statements are permitted");
     return { rows: [] };
   }
-  async end() { databaseCalls.push("end"); }
+  async end() {
+    databaseCalls.push("end");
+    if (databaseEndThrows) throw new Error(sentinel + localUrl);
+  }
 }
 mockModule("pg", { exports: { Client: MockDatabaseClient } });
 let guard!: typeof import("../scripts/database/verify-migration-target.mjs");
@@ -151,6 +158,7 @@ before(async () => {
 beforeEach(() => {
   spawnCalls = []; childExit = 0; childStdout = ""; childStderr = ""; childThrows = false;
   databaseConfigs = []; databaseCalls = []; databaseThrows = false; databaseView = undefined;
+  databaseFailure = undefined; databaseEndThrows = false;
   resolutionMode = "normal";
 });
 const files: MigrationFile[] = [
@@ -169,11 +177,12 @@ function snapshot(applied = 2): DatabaseSnapshot {
 function checks(applied = 2) {
   const calls: string[] = [];
   const logs: string[] = [];
+  const passes: Array<InspectionPass | undefined> = [];
   let deployed = false;
   const deps: ReleaseChecks = {
     log: (message) => { logs.push(message); },
     files: async () => { calls.push("files"); return files; },
-    inspect: async () => { calls.push("inspect"); return snapshot(deployed ? 2 : applied); },
+    inspect: async (_target, pass) => { calls.push("inspect"); passes.push(pass); return snapshot(deployed ? 2 : applied); },
     status: async () => {
       calls.push("status");
       return !deployed && applied < 2
@@ -183,7 +192,7 @@ function checks(applied = 2) {
     deploy: async () => { calls.push("deploy"); deployed = true; return { exitCode: 0, pendingNames: null }; },
     smoke: async () => { calls.push("smoke"); },
   };
-  return { calls, logs, deps };
+  return { calls, logs, passes, deps };
 }
 
 for (const key of [
@@ -477,14 +486,16 @@ test("prebuild module cannot import the deploy capability", () => {
   assert.doesNotMatch(source, /deployPrismaMigrations|migrateRelease|migrate-release|["']deploy["']/);
 });
 test("expected pending suffix permits fixed release sequence", async () => {
-  const { deps, calls } = checks(1);
+  const { deps, calls, passes } = checks(1);
   await release.migrateRelease(local(), deps);
   assert.deepEqual(calls, ["files", "inspect", "status", "inspect", "deploy", "status", "inspect", "smoke"]);
+  assert.deepEqual(passes, ["release-precheck", "release-precheck", "release-postcheck"]);
 });
 test("up-to-date release still uses fixed idempotent deploy sequence", async () => {
-  const { deps, calls } = checks();
+  const { deps, calls, passes } = checks();
   await release.migrateRelease(local(), deps);
   assert.deepEqual(calls, ["files", "inspect", "status", "inspect", "deploy", "status", "inspect", "smoke"]);
+  assert.deepEqual(passes, ["release-precheck", "release-precheck", "release-postcheck"]);
 });
 test("exit 1 without an exact expected pending list stops before deploy", async () => {
   const { deps, calls } = checks(1);
@@ -601,11 +612,23 @@ test("logical verification checks both endpoints using only read-only database c
     assert.equal(config.database, "wanderstory_mf5a_verify");
     assert.equal(config.ssl, false);
     assert.equal(config.options, "-c default_transaction_read_only=on");
+    assert.equal(config.statement_timeout, 10000);
+    assert.equal(config.query_timeout, 10000);
+    assert.equal(config.connectionTimeoutMillis, 10000);
+    assert.equal(config.application_name, "wanderstory-migration-guard");
     assert.equal(config.connectionString, undefined);
   }
   assert.equal(databaseCalls.filter((sql) => sql === "BEGIN READ ONLY").length, 2);
   assert.equal(databaseCalls.filter((sql) => sql === "ROLLBACK").length, 2);
   assert.equal(databaseCalls.filter((sql) => sql === "end").length, 2);
+  const inspectionCalls = [
+    "connect", "BEGIN READ ONLY",
+    "SELECT current_database() AS database, to_regclass('public._prisma_migrations')::text AS migrations_table",
+    'SELECT migration_name, checksum, finished_at::text, rolled_back_at::text FROM public."_prisma_migrations" ORDER BY migration_name, started_at',
+    "SELECT table_name, column_name, data_type, udt_name FROM information_schema.columns WHERE table_schema = 'public' ORDER BY table_name, ordinal_position",
+    "ROLLBACK", "end",
+  ];
+  assert.deepEqual(databaseCalls, [...inspectionCalls, ...inspectionCalls]);
   assert.deepEqual(spawnCalls, []);
 });
 
@@ -624,6 +647,7 @@ test("remote catalog checks use verified TLS and the two explicit endpoints (moc
   await guard.verifyLogicalTarget(guard.verifyMigrationTarget(remote()));
   assert.equal(databaseConfigs[0].host, "db." + project + ".supabase.co");
   assert.equal(databaseConfigs[1].host, "aws-0-ap-northeast-1.pooler.supabase.com");
+  assert.deepEqual(databaseConfigs.map((config) => config.port), [5432, 6543]);
   for (const config of databaseConfigs) assert.deepEqual(config.ssl, { rejectUnauthorized: true });
   assert.deepEqual(spawnCalls, []);
 });
@@ -643,6 +667,248 @@ test("forged target fails before constructing any database client", async () => 
   await assert.rejects(guard.inspectDatabase({ ...guard.verifyMigrationTarget(local()) }, "direct"), /UNVERIFIED_TARGET/);
   assert.deepEqual(databaseConfigs, []);
 });
+
+const diagnosticSecrets = [
+  sentinel, localUrl, "diagnostic-private-host.invalid", "diagnostic-private-user",
+  "provider-private-message", "provider-private-stack", "provider-private-detail",
+  "provider-private-hint", "provider-private-cause", "provider-private-name",
+  "SELECT private_query_text", "diagnostic-private-database", "diagnostic-private-symbol", "55436",
+];
+function providerError(code: unknown): Error {
+  const error = Object.assign(new Error(diagnosticSecrets.join(" ")), {
+    code, name: "provider-private-name", stack: "provider-private-stack",
+    detail: "provider-private-detail", hint: "provider-private-hint",
+    hostname: "diagnostic-private-host.invalid", username: "diagnostic-private-user",
+    password: sentinel, connectionString: localUrl, database: "diagnostic-private-database",
+    port: 55436, query: "SELECT private_query_text",
+    cause: { message: "provider-private-cause", password: sentinel },
+    toJSON: () => { throw new Error("Provider errors must never be serialized"); },
+  });
+  return error;
+}
+function failureReport(error: unknown): string[] {
+  const lines: string[] = [];
+  const previousExitCode = process.exitCode;
+  const logger = mock.method(console, "error", (line: unknown) => {
+    assert.equal(typeof line, "string");
+    lines.push(line as string);
+  });
+  try {
+    guard.reportFailure(error);
+    assert.equal(process.exitCode, 1);
+  } finally {
+    logger.mock.restore();
+    process.exitCode = previousExitCode;
+  }
+  return lines;
+}
+async function diagnosticFor(run: () => Promise<unknown>): Promise<Record<string, unknown>> {
+  let lines: string[] = [];
+  await assert.rejects(run, (error: unknown) => {
+    assert.ok(error instanceof guard.MigrationGuardError);
+    assert.equal(error.code, "DATABASE_READ_FAILED");
+    assert.equal(error.message, "Migration safety check failed: DATABASE_READ_FAILED");
+    assert.equal(Object.hasOwn(error, "cause"), false);
+    lines = failureReport(error);
+    return true;
+  });
+  assert.equal(lines.length, 2);
+  assert.equal(lines[1], "Migration safety check failed: DATABASE_READ_FAILED");
+  assert.ok(lines[0].startsWith("Migration diagnostic: "));
+  assert.ok(lines[0].length < 300);
+  for (const secret of diagnosticSecrets) assert.ok(!lines.join("\n").includes(secret), "Diagnostic must be redacted");
+  const diagnostic = JSON.parse(lines[0].slice("Migration diagnostic: ".length));
+  assert.deepEqual(Object.keys(diagnostic), ["pass", "endpoint", "operation", "category", "code"]);
+  return diagnostic;
+}
+
+for (const [index, endpoint] of [[0, "direct"], [1, "runtime"]] as const) {
+  for (const [operation, at] of [
+    ["connect", "connect"], ["begin_read_only", "BEGIN READ ONLY"],
+    ["identity_query", "SELECT current_database()"], ["migration_query", "SELECT migration_name"],
+    ["columns_query", "SELECT table_name"], ["rollback", "ROLLBACK"],
+  ] as const) {
+    test(`diagnostic attributes ${endpoint} ${operation} failure and stops prebuild`, async () => {
+      databaseFailure = { index, at, error: providerError("08P01") };
+      const diagnostic = await diagnosticFor(() => gate.assertMigrationsApplied(local({ MIGRATION_STATUS_GATE: "1" }), {
+        ...guard.defaultChecks, files: async () => files, log: () => {},
+      }));
+      assert.deepEqual(diagnostic, { pass: "initial", endpoint, operation, category: "postgres", code: "08P01" });
+      assert.equal(databaseConfigs.length, index + 1);
+      assert.equal(databaseCalls.filter((call) => call === "end").length, index + 1);
+      assert.ok(databaseCalls.at(-2)?.startsWith(at));
+      assert.equal(databaseCalls.at(-1), "end");
+      if (index === 1) assert.ok(databaseCalls.indexOf("end") < databaseCalls.lastIndexOf("connect"));
+      assert.deepEqual(spawnCalls, []);
+    });
+  }
+  test(`diagnostic preserves DATABASE_READ_FAILED for ${endpoint} identity mismatch`, async () => {
+    databaseView = (clientIndex) => ({ ...snapshot(), database: clientIndex === index ? "different" : snapshot().database });
+    const diagnostic = await diagnosticFor(() => guard.verifyLogicalTarget(guard.verifyMigrationTarget(local())));
+    assert.deepEqual(diagnostic, {
+      pass: "initial", endpoint, operation: "identity_check", category: "identity_mismatch", code: null,
+    });
+    assert.deepEqual(databaseCalls.slice(-2), ["ROLLBACK", "end"]);
+    assert.deepEqual(spawnCalls, []);
+  });
+}
+
+for (const [code, category] of [
+  ["28P01", "authentication"], ["28000", "authentication"], ["42501", "postgres"],
+  ["22023", "postgres"], ["57014", "postgres"],
+  ["ECONNREFUSED", "network"], ["ECONNRESET", "network"], ["ETIMEDOUT", "timeout"],
+  ["ENOTFOUND", "network"], ["EHOSTUNREACH", "network"], ["ENETUNREACH", "network"],
+  ["CERT_HAS_EXPIRED", "tls"], ["DEPTH_ZERO_SELF_SIGNED_CERT", "tls"],
+  ["UNABLE_TO_VERIFY_LEAF_SIGNATURE", "tls"], ["ERR_TLS_CERT_ALTNAME_INVALID", "tls"],
+] as const) {
+  test(`diagnostic retains allowlisted code ${code}`, async () => {
+    databaseFailure = { index: 0, at: "connect", error: providerError(code) };
+    const diagnostic = await diagnosticFor(() => guard.verifyLogicalTarget(guard.verifyMigrationTarget(local())));
+    assert.equal(diagnostic.code, code);
+    assert.equal(diagnostic.category, category);
+  });
+}
+for (const [label, code] of [
+  ["free-form", sentinel + localUrl], ["unknown five-character", "ZZ999"],
+  ["unknown system", "ERR_PROVIDER_SECRET"], ["lowercase", "08p01"],
+  ["newline suffix", "08P01\n"], ["whitespace prefix", " 08P01"],
+  ["numeric", 42501], ["missing", undefined], ["null", null],
+  ["symbol", Symbol("diagnostic-private-symbol")], ["boolean true", true], ["boolean false", false],
+  ["object", { toString: () => { throw new Error(sentinel); }, toJSON: () => sentinel }],
+] as const) {
+  test(`diagnostic rejects ${label} code without coercion`, async () => {
+    databaseFailure = { index: 0, at: "connect", error: providerError(code) };
+    const diagnostic = await diagnosticFor(() => guard.verifyLogicalTarget(guard.verifyMigrationTarget(local())));
+    assert.equal(diagnostic.code, null);
+    assert.equal(diagnostic.category, "unknown");
+  });
+}
+test("diagnostic does not invoke error getters or inspect arbitrary properties", async () => {
+  const error = {};
+  let getterReads = 0;
+  for (const key of ["code", "name", "message", "stack", "detail", "hint", "cause", "toJSON"]) {
+    Object.defineProperty(error, key, { get: () => { getterReads++; throw new Error(sentinel); } });
+  }
+  databaseFailure = { index: 0, at: "connect", error };
+  const diagnostic = await diagnosticFor(() => guard.verifyLogicalTarget(guard.verifyMigrationTarget(local())));
+  assert.equal(diagnostic.category, "unknown");
+  assert.equal(diagnostic.code, null);
+  assert.equal(getterReads, 0);
+});
+test("diagnostic preserves failure when error reflection throws", async () => {
+  const error = new Proxy({}, { getOwnPropertyDescriptor: () => { throw new Error(sentinel); } });
+  databaseFailure = { index: 0, at: "connect", error };
+  const diagnostic = await diagnosticFor(() => guard.verifyLogicalTarget(guard.verifyMigrationTarget(local())));
+  assert.equal(diagnostic.category, "unknown");
+  assert.equal(diagnostic.code, null);
+});
+test("diagnostic ignores inherited codes and non-object exceptions", async () => {
+  for (const error of [Object.create({ code: "28P01" }), sentinel, null, undefined]) {
+    databaseFailure = { index: databaseConfigs.length, at: "connect", error };
+    const diagnostic = await diagnosticFor(() => guard.verifyLogicalTarget(guard.verifyMigrationTarget(local())));
+    assert.equal(diagnostic.code, null);
+    assert.equal(diagnostic.category, "unknown");
+  }
+});
+test("diagnostic bounds unexpected pass values and suppresses cleanup errors", async () => {
+  databaseEndThrows = true;
+  databaseFailure = { index: 0, at: "connect", error: providerError("ECONNRESET") };
+  const diagnostic = await diagnosticFor(() => guard.verifyLogicalTarget(
+    guard.verifyMigrationTarget(local()), sentinel as InspectionPass,
+  ));
+  assert.equal(diagnostic.pass, "initial");
+  assert.equal(diagnostic.operation, "connect");
+  assert.equal(diagnostic.code, "ECONNRESET");
+  assert.deepEqual(databaseCalls, ["connect", "end"]);
+});
+test("diagnostic reporter ignores metadata not issued by database inspection", () => {
+  const failure = Object.assign(new guard.MigrationGuardError("DATABASE_READ_FAILED"), {
+    diagnostic: providerError("28P01"),
+  });
+  assert.deepEqual(failureReport(failure), ["Migration safety check failed: DATABASE_READ_FAILED"]);
+  assert.deepEqual(failureReport(providerError("28P01")), ["Migration safety check failed: OPERATION_FAILED"]);
+});
+test("diagnostic serialization failure preserves the normal failure and exit code", async () => {
+  databaseFailure = { index: 0, at: "connect", error: providerError("ECONNRESET") };
+  let failure: unknown;
+  await assert.rejects(guard.verifyLogicalTarget(guard.verifyMigrationTarget(local())), (error: unknown) => {
+    failure = error;
+    return true;
+  });
+  const lines: string[] = [];
+  const previousExitCode = process.exitCode;
+  const logger = mock.method(console, "error", (line: unknown) => { lines.push(String(line)); });
+  const serializer = mock.method(JSON, "stringify", () => { throw providerError(Symbol("diagnostic-private-symbol")); });
+  try {
+    assert.doesNotThrow(() => guard.reportFailure(failure));
+    assert.equal(process.exitCode, 1);
+  } finally {
+    serializer.mock.restore();
+    logger.mock.restore();
+    process.exitCode = previousExitCode;
+  }
+  assert.deepEqual(lines, ["Migration safety check failed: DATABASE_READ_FAILED"]);
+  for (const secret of diagnosticSecrets) assert.ok(!lines.join("\n").includes(secret));
+});
+test("diagnostic logger failure preserves the normal failure and exit code", async () => {
+  databaseFailure = { index: 0, at: "connect", error: providerError("ECONNRESET") };
+  let failure: unknown;
+  await assert.rejects(guard.verifyLogicalTarget(guard.verifyMigrationTarget(local())), (error: unknown) => {
+    failure = error;
+    return true;
+  });
+  const lines: string[] = [];
+  let writes = 0;
+  const previousExitCode = process.exitCode;
+  const logger = mock.method(console, "error", (line: unknown) => {
+    if (writes++ === 0) throw providerError(Symbol("diagnostic-private-symbol"));
+    lines.push(String(line));
+  });
+  try {
+    assert.doesNotThrow(() => guard.reportFailure(failure));
+    assert.equal(process.exitCode, 1);
+  } finally {
+    logger.mock.restore();
+    process.exitCode = previousExitCode;
+  }
+  assert.equal(writes, 2);
+  assert.deepEqual(lines, ["Migration safety check failed: DATABASE_READ_FAILED"]);
+  for (const secret of diagnosticSecrets) assert.ok(!lines.join("\n").includes(secret));
+});
+
+for (const [index, endpoint] of [[2, "direct"], [3, "runtime"]] as const) {
+  test(`diagnostic identifies ${endpoint} smoke failure after initial prebuild inspection and status`, async () => {
+    databaseFailure = { index, at: "connect", error: providerError("ECONNREFUSED") };
+    const diagnostic = await diagnosticFor(() => gate.assertMigrationsApplied(local({ MIGRATION_STATUS_GATE: "1" }), {
+      ...guard.defaultChecks, files: async () => files, log: () => {},
+    }));
+    assert.deepEqual(diagnostic, { pass: "smoke", endpoint, operation: "connect", category: "network", code: "ECONNREFUSED" });
+    assert.equal(databaseConfigs.length, index + 1);
+    assert.deepEqual(spawnCalls.map((call) => call.args), [[localCli, "migrate", "status"]]);
+  });
+}
+for (const [inspection, pass, expectedCalls] of [
+  [0, "release-precheck", ["files", "inspect"]],
+  [1, "release-precheck", ["files", "inspect", "status", "inspect"]],
+  [2, "release-postcheck", ["files", "inspect", "status", "inspect", "deploy", "status", "inspect"]],
+] as const) {
+  for (const [offset, endpoint] of [[0, "direct"], [1, "runtime"]] as const) {
+    test(`diagnostic labels release inspection ${inspection + 1} ${endpoint} failure and preserves stopping`, async () => {
+      const { deps, calls } = checks();
+      deps.inspect = async (target, inspectionPass) => {
+        calls.push("inspect");
+        return guard.verifyLogicalTarget(target, inspectionPass);
+      };
+      databaseFailure = { index: inspection * 2 + offset, at: "connect", error: providerError("ECONNREFUSED") };
+      const diagnostic = await diagnosticFor(() => release.migrateRelease(local(), deps));
+      assert.deepEqual(diagnostic, { pass, endpoint, operation: "connect", category: "network", code: "ECONNREFUSED" });
+      assert.deepEqual(calls, expectedCalls);
+      assert.equal(calls.filter((call) => call === "deploy").length, inspection === 2 ? 1 : 0);
+      assert.equal(databaseCalls.at(-1), "end");
+      assert.deepEqual(spawnCalls, []);
+    });
+  }
+}
 
 test("schema smoke verifies current scalar columns and rejects a missing one (mock only)", async () => {
   const schema = readFileSync("prisma/schema.prisma", "utf8");
