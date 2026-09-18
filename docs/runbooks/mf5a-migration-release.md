@@ -227,14 +227,15 @@ provider/Prisma exceptions and credentials are deliberately suppressed here.
 Database inspection failures keep the exact external failure and exit code 1:
 
 ```text
-Migration diagnostic: {"pass":"initial","endpoint":"direct","operation":"connect","category":"postgres","code":"08P01"}
+Migration diagnostic: {"pass":"initial","endpoint":"direct","operation":"connect","connect_phase":"postgres_startup","category":"postgres","code":"08P01"}
 Migration safety check failed: DATABASE_READ_FAILED
 ```
 
 This is an illustrative diagnostic, not evidence of a production cause. The
 failure reporter emits one diagnostic line immediately before the existing error
-line. Its only keys are `pass`, `endpoint`, `operation`, `category`, and `code`.
-The original provider error is neither retained nor serialized.
+line. Its only keys are `pass`, `endpoint`, `operation`, `connect_phase`,
+`category`, and `code`. The original provider error is neither retained nor
+serialized.
 
 - `pass`: `initial` for prebuild's first inspection and standalone target
   verification; `smoke` for schema smoke's inspection; `release-precheck` for both
@@ -244,6 +245,16 @@ The original provider error is neither retained nor serialized.
 - `operation`: `connect`, `begin_read_only`, `identity_query`, `migration_query`,
   `columns_query`, `rollback`, or `identity_check`. `begin_read_only` is the first
   query, distinct from the subsequent identity SELECT.
+- `connect_phase`: the furthest positively observed connection milestone when
+  `operation` is `connect`, or `null` after connect succeeds. The fixed milestones
+  are `socket_connect` before TCP establishment is observed; `ssl_negotiation`
+  after TCP while PostgreSQL SSLRequest is pending; `tls_handshake` after the
+  server accepts SSL and pg creates its TLS stream; `postgres_startup` after
+  Node emits `secureConnect`, or after TCP on the non-TLS local path;
+  `authentication` after an authentication request or continuation;
+  `post_auth` after `AuthenticationOk`; and `ready` after `ReadyForQuery`. This is
+  a lower-bound lifecycle observation, not proof that the named subsystem caused
+  the failure.
 - `category`: `authentication`, `tls`, `network`, `timeout`, `postgres`,
   `identity_mismatch`, or `unknown`. Categories use only exact allowlisted codes
   and the internal connected-database mismatch marker. `08P01` means a protocol
@@ -263,6 +274,17 @@ coercion, and arbitrary error names are ignored. No message, stack, detail, hint
 cause, URL, host, port, database, username, password, configuration, provider
 response, or query text is included in the diagnostic. Keep the bounded line for
 investigation; do not enable raw provider logging to fill gaps in it.
+
+Connection-phase observation is intentionally coupled to the locked pg 8.22.0
+internal `Connection` event names and is guarded by contract tests. pg's
+`sslconnect` event means that PostgreSQL accepted SSLRequest and pg created the
+TLS stream; it does not mean that TLS negotiation succeeded. Node's
+`secureConnect` event advances the phase to `postgres_startup`. The observer does
+not inspect event payloads or generic protocol messages, and attachment or
+removal failure is ignored so it cannot replace normal database behavior. There
+is deliberately no `timeout` phase: pg's message-only connection timer failure
+retains the last observed phase with `unknown`/`null` unless it has a separately
+allowlisted code.
 
 This diagnostic does not change connection options, TLS verification, read-only
 protections, queries, endpoint routing, release sequencing, or failure cleanup.

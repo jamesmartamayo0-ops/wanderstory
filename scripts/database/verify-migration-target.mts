@@ -31,6 +31,8 @@ function fail(code: string): never { throw new MigrationGuardError(code); }
 export type InspectionPass = "initial" | "smoke" | "release-precheck" | "release-postcheck";
 type InspectionOperation = "connect" | "begin_read_only" | "identity_query" | "migration_query" |
   "columns_query" | "rollback" | "identity_check";
+export type ConnectPhase = "socket_connect" | "ssl_negotiation" | "tls_handshake" |
+  "postgres_startup" | "authentication" | "post_auth" | "ready";
 type InspectionErrorCategory = "authentication" | "tls" | "network" | "timeout" |
   "postgres" | "identity_mismatch" | "unknown";
 // Exact known codes only: a five-character string alone is not proof of SQLSTATE.
@@ -53,6 +55,7 @@ type InspectionDiagnostic = Readonly<{
   pass: InspectionPass;
   endpoint: "direct" | "runtime";
   operation: InspectionOperation;
+  connect_phase: ConnectPhase | null;
   category: InspectionErrorCategory;
   code: InspectionErrorCode | null;
 }>;
@@ -60,6 +63,7 @@ type InspectionDiagnostic = Readonly<{
 const inspectionDiagnostics = new WeakMap<MigrationGuardError, InspectionDiagnostic>();
 function databaseReadFailure(
   error: unknown, pass: InspectionPass, endpoint: "direct" | "runtime", operation: InspectionOperation,
+  connectPhase: ConnectPhase | null,
 ): MigrationGuardError {
   let category: InspectionErrorCategory = "unknown";
   let code: InspectionErrorCode | null = null;
@@ -78,9 +82,83 @@ function databaseReadFailure(
   inspectionDiagnostics.set(failure, Object.freeze({
     pass: pass === "smoke" || pass === "release-precheck" || pass === "release-postcheck" ? pass : "initial",
     endpoint: endpoint === "runtime" ? "runtime" : "direct",
-    operation, category, code,
+    operation, connect_phase: operation === "connect" ? connectPhase ?? "socket_connect" : null, category, code,
   }));
   return failure;
+}
+
+const connectPhaseOrder = {
+  socket_connect: 0, ssl_negotiation: 1, tls_handshake: 2, postgres_startup: 3,
+  authentication: 4, post_auth: 5, ready: 6,
+} as const satisfies Record<ConnectPhase, number>;
+type InternalListener = (...args: unknown[]) => void;
+type InternalEmitter = {
+  on: (event: string, listener: InternalListener) => unknown;
+  removeListener: (event: string, listener: InternalListener) => unknown;
+};
+type InternalPgConnection = InternalEmitter & { stream?: unknown };
+
+function isInternalEmitter(value: unknown): value is InternalEmitter {
+  try {
+    return value !== null && typeof value === "object" &&
+      typeof (value as Partial<InternalEmitter>).on === "function" &&
+      typeof (value as Partial<InternalEmitter>).removeListener === "function";
+  } catch { return false; }
+}
+
+// pg 8.22.0 exposes these events on Client.connection, an internal surface pinned
+// by package-lock.json and contract tests. Observation is best-effort and must
+// never affect the connection if the internal surface changes.
+function observeConnectPhase(client: unknown, tlsEnabled: boolean): Readonly<{
+  current: () => ConnectPhase;
+  cleanup: () => void;
+}> {
+  let phase: ConnectPhase = "socket_connect";
+  let active = true;
+  let secureStream: unknown;
+  const removers: Array<() => void> = [];
+  const advance = (next: ConnectPhase) => {
+    if (active && connectPhaseOrder[next] > connectPhaseOrder[phase]) phase = next;
+  };
+  const attach = (emitter: InternalEmitter, event: string, listener: InternalListener): boolean => {
+    try {
+      emitter.on(event, listener);
+      removers.push(() => {
+        try { emitter.removeListener(event, listener); }
+        catch { /* Diagnostic teardown is best-effort and cannot affect database behavior. */ }
+      });
+      return true;
+    } catch { return false; }
+  };
+  const cleanup = () => {
+    if (!active) return;
+    active = false;
+    for (const remove of removers.reverse()) remove();
+    removers.length = 0;
+  };
+  try {
+    const connection = (client as { connection?: unknown }).connection;
+    if (!isInternalEmitter(connection)) return Object.freeze({ current: () => phase, cleanup });
+    const internal = connection as InternalPgConnection;
+    attach(internal, "connect", () => advance(tlsEnabled ? "ssl_negotiation" : "postgres_startup"));
+    attach(internal, "sslconnect", () => {
+      advance("tls_handshake");
+      try {
+        const stream = internal.stream;
+        if (stream !== secureStream && isInternalEmitter(stream)) {
+          secureStream = stream;
+          attach(stream, "secureConnect", () => advance("postgres_startup"));
+        }
+      } catch { /* A changed pg stream surface only reduces diagnostic precision. */ }
+    });
+    for (const event of [
+      "authenticationCleartextPassword", "authenticationMD5Password", "authenticationSASL",
+      "authenticationSASLContinue", "authenticationSASLFinal",
+    ]) attach(internal, event, () => advance("authentication"));
+    attach(internal, "authenticationOk", () => advance("post_auth"));
+    attach(internal, "readyForQuery", () => advance("ready"));
+  } catch { /* A changed pg internal surface must not change connection behavior. */ }
+  return Object.freeze({ current: () => phase, cleanup });
 }
 
 function required(env: Environment, key: string): string {
@@ -264,9 +342,11 @@ export async function inspectDatabase(
   });
   // Do not allow EventEmitter errors to print a provider exception.
   client.on("error", () => {});
+  const connectPhases = observeConnectPhase(client, target.topology === "supabase");
   let operation: InspectionOperation = "connect";
   try {
     await client.connect();
+    connectPhases.cleanup();
     operation = "begin_read_only";
     await client.query("BEGIN READ ONLY");
     operation = "identity_query";
@@ -288,8 +368,9 @@ export async function inspectDatabase(
     if (identity.rows[0].database !== target[kind].database) fail("CONNECTED_DATABASE_MISMATCH");
     return { database: identity.rows[0].database, migrationsTable, migrations: rows, columns };
   } catch (error) {
-    throw databaseReadFailure(error, pass, kind, operation);
+    throw databaseReadFailure(error, pass, kind, operation, operation === "connect" ? connectPhases.current() : null);
   } finally {
+    connectPhases.cleanup();
     await client.end().catch(() => {});
   }
 }

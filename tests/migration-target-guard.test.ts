@@ -117,15 +117,52 @@ let databaseThrows = false;
 let databaseFailure: { index: number; at: string; error: unknown } | undefined;
 let databaseEndThrows = false;
 let databaseView: ((index: number) => DatabaseSnapshot) | undefined;
+let databaseConnectEvents: string[] | undefined;
+let databaseInstrumentationAttachThrowsAt: string | undefined;
+let databaseInstrumentationTeardownThrows = false;
+class MockLifecycleEmitter extends EventEmitter {
+  stream: MockLifecycleEmitter | undefined;
+  override on(eventName: string | symbol, listener: (...args: unknown[]) => void): this {
+    if (databaseInstrumentationAttachThrowsAt === String(eventName)) throw new Error(sentinel + localUrl);
+    return super.on(eventName, listener);
+  }
+  override removeListener(eventName: string | symbol, listener: (...args: unknown[]) => void): this {
+    if (databaseInstrumentationTeardownThrows) throw new Error(sentinel + localUrl);
+    return super.removeListener(eventName, listener);
+  }
+}
+let databaseConnections: MockLifecycleEmitter[] = [];
 class MockDatabaseClient extends EventEmitter {
   private readonly index: number;
+  private readonly tls: boolean;
+  readonly connection = new MockLifecycleEmitter();
   constructor(config: Record<string, unknown>) {
     super();
     this.index = databaseConfigs.length;
+    this.tls = config.ssl !== false;
+    this.connection.stream = new MockLifecycleEmitter();
+    databaseConnections.push(this.connection);
     databaseConfigs.push(config);
+  }
+  private emitConnectEvents(events: string[]) {
+    for (const event of events) {
+      if (event === "sslconnect") {
+        this.connection.stream = new MockLifecycleEmitter();
+        this.connection.emit(event);
+      } else if (event === "secureConnect") {
+        this.connection.stream?.emit(event);
+      } else {
+        this.connection.emit(event);
+      }
+    }
   }
   async connect() {
     databaseCalls.push("connect");
+    const fails = databaseFailure?.index === this.index && databaseFailure.at === "connect";
+    const defaultEvents = this.tls
+      ? ["connect", "sslconnect", "secureConnect", "authenticationOk", "readyForQuery"]
+      : ["connect", "authenticationOk", "readyForQuery"];
+    this.emitConnectEvents(databaseConnectEvents ?? (fails || databaseThrows ? [] : defaultEvents));
     if (databaseFailure?.index === this.index && databaseFailure.at === "connect") throw databaseFailure.error;
     if (databaseThrows) throw new Error(sentinel + localUrl);
   }
@@ -159,6 +196,8 @@ beforeEach(() => {
   spawnCalls = []; childExit = 0; childStdout = ""; childStderr = ""; childThrows = false;
   databaseConfigs = []; databaseCalls = []; databaseThrows = false; databaseView = undefined;
   databaseFailure = undefined; databaseEndThrows = false;
+  databaseConnectEvents = undefined; databaseInstrumentationAttachThrowsAt = undefined;
+  databaseInstrumentationTeardownThrows = false; databaseConnections = [];
   resolutionMode = "normal";
 });
 const files: MigrationFile[] = [
@@ -718,9 +757,190 @@ async function diagnosticFor(run: () => Promise<unknown>): Promise<Record<string
   assert.ok(lines[0].length < 300);
   for (const secret of diagnosticSecrets) assert.ok(!lines.join("\n").includes(secret), "Diagnostic must be redacted");
   const diagnostic = JSON.parse(lines[0].slice("Migration diagnostic: ".length));
-  assert.deepEqual(Object.keys(diagnostic), ["pass", "endpoint", "operation", "category", "code"]);
+  assert.deepEqual(Object.keys(diagnostic), ["pass", "endpoint", "operation", "connect_phase", "category", "code"]);
   return diagnostic;
 }
+
+async function connectDiagnostic(events: string[], error: unknown): Promise<Record<string, unknown>> {
+  databaseConnectEvents = events;
+  databaseFailure = { index: 0, at: "connect", error };
+  return diagnosticFor(() => guard.inspectDatabase(guard.verifyMigrationTarget(remote()), "direct"));
+}
+
+test("diagnostic reports socket_connect before TCP is observed", async () => {
+  const diagnostic = await connectDiagnostic([], providerError(undefined));
+  assert.equal(diagnostic.connect_phase, "socket_connect");
+  assert.equal(diagnostic.category, "unknown");
+  assert.equal(diagnostic.code, null);
+});
+
+test("diagnostic reports ssl_negotiation after TCP and before sslconnect", async () => {
+  const diagnostic = await connectDiagnostic(["connect"], providerError(undefined));
+  assert.equal(diagnostic.connect_phase, "ssl_negotiation");
+});
+
+test("diagnostic keeps ssl_negotiation for PostgreSQL SSL refusal", async () => {
+  const diagnostic = await connectDiagnostic(["connect"], new Error("SSL refusal " + sentinel + localUrl));
+  assert.equal(diagnostic.connect_phase, "ssl_negotiation");
+  assert.equal(diagnostic.category, "unknown");
+  assert.equal(diagnostic.code, null);
+});
+
+test("diagnostic reports tls_handshake after sslconnect but before secureConnect", async () => {
+  const diagnostic = await connectDiagnostic(["connect", "sslconnect"], providerError(undefined));
+  assert.equal(diagnostic.connect_phase, "tls_handshake");
+});
+
+test("diagnostic reports postgres_startup after secureConnect", async () => {
+  const diagnostic = await connectDiagnostic(
+    ["connect", "sslconnect", "secureConnect"], providerError(undefined),
+  );
+  assert.equal(diagnostic.connect_phase, "postgres_startup");
+});
+
+test("diagnostic reports postgres_startup after TCP on the non-TLS path", async () => {
+  databaseConnectEvents = ["connect"];
+  databaseFailure = { index: 0, at: "connect", error: providerError(undefined) };
+  const diagnostic = await diagnosticFor(
+    () => guard.inspectDatabase(guard.verifyMigrationTarget(local()), "direct"),
+  );
+  assert.equal(diagnostic.connect_phase, "postgres_startup");
+});
+
+for (const authenticationEvent of [
+  "authenticationCleartextPassword", "authenticationMD5Password", "authenticationSASL",
+  "authenticationSASLContinue", "authenticationSASLFinal",
+]) {
+  test(`diagnostic reports authentication after ${authenticationEvent}`, async () => {
+    const diagnostic = await connectDiagnostic(
+      ["connect", "sslconnect", "secureConnect", authenticationEvent], providerError(undefined),
+    );
+    assert.equal(diagnostic.connect_phase, "authentication");
+  });
+}
+
+test("diagnostic reports post_auth after authenticationOk", async () => {
+  const diagnostic = await connectDiagnostic(
+    ["connect", "sslconnect", "secureConnect", "authenticationSASL", "authenticationOk"],
+    providerError(undefined),
+  );
+  assert.equal(diagnostic.connect_phase, "post_auth");
+});
+
+test("diagnostic reports ready after readyForQuery", async () => {
+  const diagnostic = await connectDiagnostic(
+    ["connect", "sslconnect", "secureConnect", "authenticationOk", "readyForQuery"],
+    providerError(undefined),
+  );
+  assert.equal(diagnostic.connect_phase, "ready");
+});
+
+test("diagnostic connection timeout retains the last observed phase without inference", async () => {
+  const diagnostic = await connectDiagnostic(
+    ["connect", "sslconnect"], new Error("timeout expired " + sentinel + localUrl),
+  );
+  assert.equal(diagnostic.connect_phase, "tls_handshake");
+  assert.equal(diagnostic.category, "unknown");
+  assert.equal(diagnostic.code, null);
+  assert.notEqual(diagnostic.connect_phase, "timeout");
+});
+
+test("diagnostic phase preserves an existing allowlisted error", async () => {
+  const diagnostic = await connectDiagnostic(["connect"], providerError("ECONNRESET"));
+  assert.equal(diagnostic.connect_phase, "ssl_negotiation");
+  assert.equal(diagnostic.category, "network");
+  assert.equal(diagnostic.code, "ECONNRESET");
+});
+
+test("diagnostic phase remains monotonic across duplicate lifecycle events", async () => {
+  const diagnostic = await connectDiagnostic([
+    "connect", "connect", "sslconnect", "sslconnect", "secureConnect", "secureConnect",
+    "authenticationSASL", "authenticationSASL", "authenticationOk", "authenticationOk",
+  ], providerError(undefined));
+  assert.equal(diagnostic.connect_phase, "post_auth");
+});
+
+test("diagnostic phase never regresses for late out-of-order lifecycle events", async () => {
+  const diagnostic = await connectDiagnostic([
+    "connect", "sslconnect", "secureConnect", "authenticationOk",
+    "authenticationSASL", "connect", "sslconnect", "readyForQuery", "authenticationMD5Password",
+  ], providerError(undefined));
+  assert.equal(diagnostic.connect_phase, "ready");
+});
+
+const observedConnectionEvents = [
+  "connect", "sslconnect", "authenticationCleartextPassword", "authenticationMD5Password",
+  "authenticationSASL", "authenticationSASLContinue", "authenticationSASLFinal",
+  "authenticationOk", "readyForQuery",
+];
+function assertInstrumentationListenersRemoved(connection: MockLifecycleEmitter): void {
+  for (const event of observedConnectionEvents) assert.equal(connection.listenerCount(event), 0, event);
+  assert.equal(connection.stream?.listenerCount("secureConnect"), 0);
+}
+
+test("diagnostic lifecycle listeners are removed after successful connect", async () => {
+  databaseView = () => ({ ...snapshot(), database: "postgres" });
+  const result = await guard.inspectDatabase(guard.verifyMigrationTarget(remote()), "direct");
+  assert.deepEqual(result, { ...snapshot(), database: "postgres" });
+  assertInstrumentationListenersRemoved(databaseConnections[0]);
+});
+
+test("diagnostic lifecycle listeners are removed after failed connect", async () => {
+  await connectDiagnostic(["connect", "sslconnect", "secureConnect"], providerError(undefined));
+  assertInstrumentationListenersRemoved(databaseConnections[0]);
+});
+
+test("diagnostic lifecycle listeners are removed when normal client cleanup also fails", async () => {
+  databaseEndThrows = true;
+  await connectDiagnostic(["connect", "sslconnect"], providerError(undefined));
+  assertInstrumentationListenersRemoved(databaseConnections[0]);
+  assert.deepEqual(databaseCalls, ["connect", "end"]);
+});
+
+test("diagnostic instrumentation attachment failure does not change database behavior", async () => {
+  databaseInstrumentationAttachThrowsAt = "sslconnect";
+  databaseView = () => ({ ...snapshot(), database: "postgres" });
+  const result = await guard.inspectDatabase(guard.verifyMigrationTarget(remote()), "direct");
+  assert.deepEqual(result, { ...snapshot(), database: "postgres" });
+  assert.deepEqual(databaseCalls, [
+    "connect", "BEGIN READ ONLY", "SELECT current_database() AS database, to_regclass('public._prisma_migrations')::text AS migrations_table",
+    "SELECT migration_name, checksum, finished_at::text, rolled_back_at::text FROM public.\"_prisma_migrations\" ORDER BY migration_name, started_at",
+    "SELECT table_name, column_name, data_type, udt_name FROM information_schema.columns WHERE table_schema = 'public' ORDER BY table_name, ordinal_position",
+    "ROLLBACK", "end",
+  ]);
+});
+
+test("diagnostic instrumentation teardown failure does not change database behavior", async () => {
+  databaseInstrumentationTeardownThrows = true;
+  databaseView = () => ({ ...snapshot(), database: "postgres" });
+  const result = await guard.inspectDatabase(guard.verifyMigrationTarget(remote()), "direct");
+  assert.deepEqual(result, { ...snapshot(), database: "postgres" });
+  assert.equal(databaseCalls.at(-1), "end");
+});
+
+test("diagnostic coupling is pinned to the pg 8.22.0 internal lifecycle", () => {
+  const packagePath = testRequire.resolve("pg/package.json");
+  const packageRoot = dirname(packagePath);
+  const metadata = JSON.parse(readFileSync(packagePath, "utf8"));
+  const clientSource = readFileSync(resolve(packageRoot, "lib/client.js"), "utf8");
+  const connectionSource = readFileSync(resolve(packageRoot, "lib/connection.js"), "utf8");
+  const streamSource = readFileSync(resolve(packageRoot, "lib/stream.js"), "utf8");
+  const protocolParserSource = readFileSync(resolve(dirname(testRequire.resolve("pg-protocol")), "parser.js"), "utf8");
+  assert.equal(metadata.version, "8.22.0");
+  for (const event of observedConnectionEvents.slice(2, 7)) {
+    assert.ok(clientSource.includes(`con.on('${event}'`), event);
+    assert.ok(protocolParserSource.includes(`'${event}'`), event);
+  }
+  assert.ok(protocolParserSource.includes("name: 'authenticationOk'"));
+  assert.ok(clientSource.includes("con.on('readyForQuery'"));
+  assert.ok(connectionSource.includes("this.emit(eventName, msg)"));
+  assert.ok(connectionSource.includes("self.emit('connect')"));
+  const secureStreamCreation = connectionSource.indexOf("self.stream = stream.getSecureStream(options)");
+  const sslConnectEmission = connectionSource.indexOf("self.emit('sslconnect')", secureStreamCreation);
+  assert.ok(secureStreamCreation >= 0 && sslConnectEmission > secureStreamCreation);
+  assert.ok(!connectionSource.slice(secureStreamCreation, sslConnectEmission).includes("secureConnect"));
+  assert.ok(streamSource.includes("return tls.connect(options)"));
+});
 
 for (const [index, endpoint] of [[0, "direct"], [1, "runtime"]] as const) {
   for (const [operation, at] of [
@@ -733,7 +953,10 @@ for (const [index, endpoint] of [[0, "direct"], [1, "runtime"]] as const) {
       const diagnostic = await diagnosticFor(() => gate.assertMigrationsApplied(local({ MIGRATION_STATUS_GATE: "1" }), {
         ...guard.defaultChecks, files: async () => files, log: () => {},
       }));
-      assert.deepEqual(diagnostic, { pass: "initial", endpoint, operation, category: "postgres", code: "08P01" });
+      assert.deepEqual(diagnostic, {
+        pass: "initial", endpoint, operation, connect_phase: operation === "connect" ? "socket_connect" : null,
+        category: "postgres", code: "08P01",
+      });
       assert.equal(databaseConfigs.length, index + 1);
       assert.equal(databaseCalls.filter((call) => call === "end").length, index + 1);
       assert.ok(databaseCalls.at(-2)?.startsWith(at));
@@ -746,7 +969,8 @@ for (const [index, endpoint] of [[0, "direct"], [1, "runtime"]] as const) {
     databaseView = (clientIndex) => ({ ...snapshot(), database: clientIndex === index ? "different" : snapshot().database });
     const diagnostic = await diagnosticFor(() => guard.verifyLogicalTarget(guard.verifyMigrationTarget(local())));
     assert.deepEqual(diagnostic, {
-      pass: "initial", endpoint, operation: "identity_check", category: "identity_mismatch", code: null,
+      pass: "initial", endpoint, operation: "identity_check", connect_phase: null,
+      category: "identity_mismatch", code: null,
     });
     assert.deepEqual(databaseCalls.slice(-2), ["ROLLBACK", "end"]);
     assert.deepEqual(spawnCalls, []);
@@ -882,7 +1106,10 @@ for (const [index, endpoint] of [[2, "direct"], [3, "runtime"]] as const) {
     const diagnostic = await diagnosticFor(() => gate.assertMigrationsApplied(local({ MIGRATION_STATUS_GATE: "1" }), {
       ...guard.defaultChecks, files: async () => files, log: () => {},
     }));
-    assert.deepEqual(diagnostic, { pass: "smoke", endpoint, operation: "connect", category: "network", code: "ECONNREFUSED" });
+    assert.deepEqual(diagnostic, {
+      pass: "smoke", endpoint, operation: "connect", connect_phase: "socket_connect",
+      category: "network", code: "ECONNREFUSED",
+    });
     assert.equal(databaseConfigs.length, index + 1);
     assert.deepEqual(spawnCalls.map((call) => call.args), [[localCli, "migrate", "status"]]);
   });
@@ -901,7 +1128,10 @@ for (const [inspection, pass, expectedCalls] of [
       };
       databaseFailure = { index: inspection * 2 + offset, at: "connect", error: providerError("ECONNREFUSED") };
       const diagnostic = await diagnosticFor(() => release.migrateRelease(local(), deps));
-      assert.deepEqual(diagnostic, { pass, endpoint, operation: "connect", category: "network", code: "ECONNREFUSED" });
+      assert.deepEqual(diagnostic, {
+        pass, endpoint, operation: "connect", connect_phase: "socket_connect",
+        category: "network", code: "ECONNREFUSED",
+      });
       assert.deepEqual(calls, expectedCalls);
       assert.equal(calls.filter((call) => call === "deploy").length, inspection === 2 ? 1 : 0);
       assert.equal(databaseCalls.at(-1), "end");
